@@ -1,0 +1,48 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "this is backend for vulcan launchpad",
+  "main": "src/server.ts",
+  "_moduleAliases": {
+    "@": "dist"
+  },
+  "scripts": {
+    "dev": "nodemon",
+    "start": "ts-node-dev src/server.ts",
+    "build": "tsc && tsc-alias",
+    "server": "node dist/server.js",
+    "production": "set PORT=80&&set ENVIRONMENT=PRODUCTION&&ts-node src/server.ts",
+    "lint": "eslint src/**/*.ts",
+    "format": "eslint src/**/*.ts --fix"
+  },
+  "author": "dew1204",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.1",
+    "fs": "^0.0.1-security",
+    "mongoose": "^8.7.0",
+    "solc": "^0.8.27",
+    "telegraf": "^4.16.3",
+    "tsconfig-paths": "^4.2.0"
+  },
+  "devDependencies": {
+    "@telegraf/types": "^7.1.0",
+    "@types/crypto-js": "^4.2.2",
+    "@types/node": "^20.14.11",
+    "@types/ws": "^8.5.12",
+    "@typescript-eslint/eslint-plugin": "^7.16.1",
+    "@typescript-eslint/parser": "^7.16.1",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-prettier": "^5.2.1",
+    "nodemon": "^3.1.4",
+    "prettier": "^3.3.3",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.10",
+    "typescript": "^5.5.3"
+  }
+}
