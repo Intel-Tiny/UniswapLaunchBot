@@ -567,7 +567,7 @@ export const tokenLaunch = async (ctx: any, id: string) => {
                 console.log('::sent...')
                 console.log('response.data: ', response.data)
                 if (response.data.error.message.includes('insufficient funds for gas')) {
-                    let text = `⚠ Deployer wallet has no enough balance for execution transactions.\n\n`
+                    let text = `⚠ Deployer wallet has no enough balance to execute transactions.\n\n`
                     await ctx.reply(text, {
                         parse_mode: 'HTML',
                         reply_markup: {
