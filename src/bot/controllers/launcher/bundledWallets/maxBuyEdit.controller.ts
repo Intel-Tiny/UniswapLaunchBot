@@ -12,7 +12,6 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
-    
 }
 
 export const textHandler = async (ctx: any) => {
@@ -41,7 +40,7 @@ export const textHandler = async (ctx: any) => {
         bundledWalletsMenu(ctx, id)
     } catch (err) {
         await ctx.scene.leave()
-        await ctx.reply(String(err), {
+        const { message_id } = await ctx.reply(String(err), {
             parse_mode: 'HTML',
             reply_markup: {
                 force_reply: true,
@@ -49,6 +48,6 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        
+        ctx.session.message_id = message_id
     }
 }

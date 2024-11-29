@@ -263,6 +263,7 @@ const launchWithInstant = async (
             from: wallet.address,
             nonce: nonce
         })
+        console.log("contractAddress: ", contractAddress)
         const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20mins from now
         // token amount for LP
         // const tokenAmount = parseEther(localeNumber(Number(totalSupply) * Number(lpSupply) * 0.01))
@@ -401,6 +402,7 @@ const launchWithAutoLP = async (
             from: wallet.address,
             nonce: nonce
         })
+        console.log("contractAddress: ", contractAddress)
         const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20mins from now
         // token amount for LP
         const tokenAmount = parseEther((Number(totalSupply) * Number(lpSupply) * 0.01).toString())
@@ -465,6 +467,7 @@ export const tokenLaunch = async (ctx: any, id: string) => {
             telegram: launch.telegram,
             custom: launch.custom
         })) as any
+
 
         let contractAddress = ''
 
@@ -534,39 +537,56 @@ export const tokenLaunch = async (ctx: any, id: string) => {
         //if launch is instant or autoLP
         if (launch.instantLaunch || launch.autoLP) {
             const { bundleSignedTxs, address } = launch.instantLaunch ? await launchWithInstant(chainId, launch, abi, bytecode) : await launchWithAutoLP(chainId, launch, abi, bytecode)
-            await Promise.all(bundleSignedTxs.map((b) => executeSimulationTx(chainId, b)))
-            ////////////////////////////////////////// sending bundle using blockrazor ///////////////////////////////////////////////
-            // const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
-            // const blockNumber: number = await _jsonRpcProvider.getBlockNumber()
-            // const nextBlock = blockNumber
-            // const requestData = {
-            //     jsonrpc: '2.0',
-            //     id: '1',
-            //     method: 'eth_sendMevBundle',
-            //     params: [
-            //         {
-            //             txs: bundleSignedTxs, // List of signed raw transactions
-            //             maxBlockNumber: nextBlock + 100 // The maximum block number for the bundle to be valid, with the default set to the current block number + 100
-            //             // "minTimestamp":1710229370,   // Expected minimum Unix timestamp (in seconds) for the bundle to be valid
-            //             // "maxTimestamp":1710829390,   // Expected maximum Unix timestamp (in seconds) for the bundle to be valid
-            //         }
-            //     ]
-            // }
-            // const config = {
-            //     headers: {
-            //         'Content-Type': 'application/json'
-            //         // Authorization: AUTH_HEADER
-            //     }
-            // }
-            // try {
-            //     console.log('::sending bundles...')
-            //     const response = await axios.post(`https://bsc.blockrazor.xyz/${process.env.BLOCK_API_KEY}`, requestData, config)
-            //     console.log('::sent...')
-            //     console.log('response.data: ', response.data)
-            // } catch (error) {
-            //     console.error('Error in sending bundle transaction:')
-            //     throw 'Error in sending bundle transaction'
-            // }
+            // await Promise.all(bundleSignedTxs.map((b) => executeSimulationTx(chainId, b)))
+            //////////////////////////////////////// sending bundle using blockrazor ///////////////////////////////////////////////
+            const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
+            const blockNumber: number = await _jsonRpcProvider.getBlockNumber()
+            const nextBlock = blockNumber
+            const requestData = {
+                jsonrpc: '2.0',
+                id: '1',
+                method: 'eth_sendMevBundle',
+                params: [
+                    {
+                        txs: bundleSignedTxs, // List of signed raw transactions
+                        maxBlockNumber: nextBlock + 100 // The maximum block number for the bundle to be valid, with the default set to the current block number + 100
+                        // "minTimestamp":1710229370,   // Expected minimum Unix timestamp (in seconds) for the bundle to be valid
+                        // "maxTimestamp":1710829390,   // Expected maximum Unix timestamp (in seconds) for the bundle to be valid
+                    }
+                ]
+            }
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json'
+                    // Authorization: AUTH_HEADER
+                }
+            }
+            try {
+                console.log('::sending bundles...')
+                const response = await axios.post(`https://eth.blockrazor.xyz/${process.env.BLOCK_API_KEY}`, requestData, config)
+                console.log('::sent...')
+                console.log('response.data: ', response.data)
+                if (response.data.error.message.includes('insufficient funds for gas')) {
+                    let text = `⚠ Deployer wallet has no enough balance for execution transactions.\n\n`
+                    await ctx.reply(text, {
+                        parse_mode: 'HTML',
+                        reply_markup: {
+                            one_time_keyboard: true,
+                            resize_keyboard: true,
+                            inline_keyboard: [
+                                [
+                                    { text: '← Back', callback_data: `launch_preview_${id}` },
+                                    { text: 'Try Again', callback_data: `launch_token_${id}` }
+                                ]
+                            ]
+                        }
+                    })
+                    return
+                }
+            } catch (error) {
+                console.error('Error in sending bundle transaction:')
+                throw 'Error in sending bundle transaction'
+            }
             ////////////////////////////////////////// end sending bundle using blockrazor ///////////////////////////////////////////////
 
             contractAddress = address as string

@@ -1,5 +1,6 @@
 import { CHAIN } from '@/types'
-export const CHAIN_ID = 56
+export const CHAIN_ID = 1
+// export const CHAIN_ID = 56
 // export const CHAIN_ID = 84532
 
 export const CHAINS: Record<number, CHAIN> = {
@@ -22,7 +23,7 @@ export const CHAINS: Record<number, CHAIN> = {
         ETHERSCAN_API_KEY: 'QJ4UTD1RDZ64DP9G5NMVTCU88H8VYYQQJX',
         ETHERSCAN_API_URL: 'https://etherscan.io/',
         UNISWAP_ROUTER_ADDRESS: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
-        BRIBE_ADDRESS: '',
+        BRIBE_ADDRESS: '0x35F3FA4B30688815667Eb81Af661b494129F883E',
         BRIBE_AMOUNT: 1e12 // 0.000001 eth
     },
     11155111: {
@@ -33,7 +34,7 @@ export const CHAINS: Record<number, CHAIN> = {
         ETHERSCAN_API_KEY: 'QJ4UTD1RDZ64DP9G5NMVTCU88H8VYYQQJX',
         ETHERSCAN_API_URL: 'https://api-sepolia.etherscan.com',
         UNISWAP_ROUTER_ADDRESS: '',
-        BRIBE_ADDRESS: '',
+        BRIBE_ADDRESS: '0x35F3FA4B30688815667Eb81Af661b494129F883E',
         BRIBE_AMOUNT: 1e14 // 0.0001 eth
     },
     84532: {
