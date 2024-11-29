@@ -240,8 +240,8 @@ const launchWithInstant = async (
         const block = await _jsonRpcProvider.getBlock('latest')
 
         // Set the minimum fee (1 gwei) for EIP-1559
-        const minGas = parseUnits('1', 'gwei')
-        const baseFee = block.baseFeePerGas || parseUnits('1', 'gwei')
+        // const minGas = parseUnits('1', 'gwei')
+        // const baseFee = block.baseFeePerGas || parseUnits('1', 'gwei')
         // const feeData = {
         //     gasPrice: minGas,
         //     maxPriorityFeePerGas: minGas,
@@ -263,7 +263,7 @@ const launchWithInstant = async (
             from: wallet.address,
             nonce: nonce
         })
-        console.log("contractAddress: ", contractAddress)
+        console.log('contractAddress: ', contractAddress)
         const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20mins from now
         // token amount for LP
         // const tokenAmount = parseEther(localeNumber(Number(totalSupply) * Number(lpSupply) * 0.01))
@@ -276,17 +276,17 @@ const launchWithInstant = async (
         const deploymentTxData = await makeDeploymentTransaction(chainId, abi, bytecode, nonce, feeData, wallet)
         const approveTxData = await makeApproveTransaction(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet)
         const addLpTxData = await makeAddLpTransaction(chainId, contractAddress, tokenAmount, lpEth, deadline, nonce + 2, feeData, wallet)
-        const bribeTxData = {
-            from: wallet.address,
-            to: CHAIN.BRIBE_ADDRESS,
-            value: CHAIN.BRIBE_AMOUNT,
-            maxFeePerGas: feeData.maxFeePerGas,
-            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-            gasLimit: 1000000,
-            nonce: nonce + 3,
-            chainId,
-            type: 2
-        }
+        // const bribeTxData = {
+        //     from: wallet.address,
+        //     to: CHAIN.BRIBE_ADDRESS,
+        //     value: CHAIN.BRIBE_AMOUNT,
+        //     maxFeePerGas: feeData.maxFeePerGas,
+        //     maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+        //     gasLimit: 1000000,
+        //     nonce: nonce + 3,
+        //     chainId,
+        //     type: 2
+        // }
 
         const bundleWalletsSignedTxs = await makeBundleWalletTransaction(
             chainId,
@@ -305,7 +305,8 @@ const launchWithInstant = async (
             feeData
         )
         // setup tx array
-        const bundleTxs = [deploymentTxData, approveTxData, addLpTxData, bribeTxData]
+        // const bundleTxs = [deploymentTxData, approveTxData, addLpTxData, bribeTxData]
+        const bundleTxs = [deploymentTxData, approveTxData, addLpTxData]
         // sign bundle txs batch
         console.log(bundleTxs.length)
         const bundleDeployerSignedTxs = await Promise.all(bundleTxs.map(async (b) => await wallet.signTransaction(b)))
@@ -402,7 +403,7 @@ const launchWithAutoLP = async (
             from: wallet.address,
             nonce: nonce
         })
-        console.log("contractAddress: ", contractAddress)
+        console.log('contractAddress: ', contractAddress)
         const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20mins from now
         // token amount for LP
         const tokenAmount = parseEther((Number(totalSupply) * Number(lpSupply) * 0.01).toString())
@@ -467,7 +468,6 @@ export const tokenLaunch = async (ctx: any, id: string) => {
             telegram: launch.telegram,
             custom: launch.custom
         })) as any
-
 
         let contractAddress = ''
 
@@ -566,8 +566,8 @@ export const tokenLaunch = async (ctx: any, id: string) => {
                 const response = await axios.post(`https://eth.blockrazor.xyz/${process.env.BLOCK_API_KEY}`, requestData, config)
                 console.log('::sent...')
                 console.log('response.data: ', response.data)
-                if (response.data.error.message.includes('insufficient funds for gas')) {
-                    let text = `⚠ Deployer wallet has no enough balance to execute transactions.\n\n`
+                if (response.data?.error?.message) {
+                    let text = `⚠ ${response.data?.error?.message}\n\n`
                     await ctx.reply(text, {
                         parse_mode: 'HTML',
                         reply_markup: {
@@ -585,7 +585,7 @@ export const tokenLaunch = async (ctx: any, id: string) => {
                 }
             } catch (error) {
                 console.error('Error in sending bundle transaction:')
-                throw 'Error in sending bundle transaction'
+                throw 'Error in sending bundle transaction. Please try again and contact to support team'
             }
             ////////////////////////////////////////// end sending bundle using blockrazor ///////////////////////////////////////////////
 

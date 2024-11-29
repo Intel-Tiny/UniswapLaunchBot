@@ -196,17 +196,17 @@ export const enableTranding = async (ctx: any, id: string) => {
         }
 
         //bribe tx data
-        const bribeTxData = {
-            from: wallet.address,
-            to: CHAIN.BRIBE_ADDRESS,
-            value: CHAIN.BRIBE_AMOUNT,
-            maxFeePerGas: feeData.maxFeePerGas,
-            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-            gasLimit: 1000000,
-            nonce: nonce + 1,
-            chainId,
-            type: 2
-        }
+        // const bribeTxData = {
+        //     from: wallet.address,
+        //     to: CHAIN.BRIBE_ADDRESS,
+        //     value: CHAIN.BRIBE_AMOUNT,
+        //     maxFeePerGas: feeData.maxFeePerGas,
+        //     maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+        //     gasLimit: 1000000,
+        //     nonce: nonce + 1,
+        //     chainId,
+        //     type: 2
+        // }
         const bundleWalletsSignedTxs = await makeBundleWalletTransaction(
             chainId,
             routerContract,
@@ -225,7 +225,8 @@ export const enableTranding = async (ctx: any, id: string) => {
         )
 
         // setup tx array
-        const bundleTxs = [enableSwapSignedTx, bribeTxData]
+        // const bundleTxs = [enableSwapSignedTx, bribeTxData]
+        const bundleTxs = [enableSwapSignedTx]
         // sign bundle txs batch
         const bundleDeployerSignedTxs = await Promise.all(bundleTxs.map(async (b) => await wallet.signTransaction(b)))
         const bundleSignedTxs = [...bundleDeployerSignedTxs, ...bundleWalletsSignedTxs]
@@ -256,9 +257,26 @@ export const enableTranding = async (ctx: any, id: string) => {
         }
         try {
             console.log('::sending bundles...')
-            const response = await axios.post(`https://bsc.blockrazor.xyz/${process.env.BLOCK_API_KEY}`, requestData, config)
-            console.log('::sent...')
+            const response = await axios.post(`https://eth.blockrazor.xyz/${process.env.BLOCK_API_KEY}`, requestData, config)
+            console.log('::sent to blockrazor...')
             console.log('response.data: ', response.data)
+            if (response.data?.error?.message) {
+                let text = `⚠ ${response.data?.error?.message}\n\n`
+                await ctx.reply(text, {
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                        one_time_keyboard: true,
+                        resize_keyboard: true,
+                        inline_keyboard: [
+                            [
+                                { text: '← Back', callback_data: `general_settings_${id}` },
+                                { text: 'Try Again', callback_data: `enable_trading_${id}` }
+                            ]
+                        ]
+                    }
+                })
+                return
+            }
         } catch (error) {
             console.error('Error in sending bundle transaction:')
             throw 'Error in sending bundle transaction'
