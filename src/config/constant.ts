@@ -1,7 +1,7 @@
 import { CHAIN } from '@/types'
-// export const CHAIN_ID = 1
+export const CHAIN_ID = 1
 // export const CHAIN_ID = 56
-export const CHAIN_ID = 84532
+// export const CHAIN_ID = 84532
 
 export const CHAINS: Record<number, CHAIN> = {
     56: {
