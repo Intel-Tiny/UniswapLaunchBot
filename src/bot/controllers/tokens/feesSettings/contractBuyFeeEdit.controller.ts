@@ -1,6 +1,6 @@
 import { udpateFeesMenu } from '.'
 import Tokens from '@/models/Tokens'
-import { checkExit, deleteMessage, deleteOldMessages } from '@/share/utils'
+import { checkExit, deleteMessage, deleteOldMessages, saveOldMsgIds } from '@/share/utils'
 
 export const enterScene = async (ctx: any) => {
     deleteOldMessages(ctx)
@@ -13,7 +13,8 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
-    ctx.session.message_id = message_id
+    saveOldMsgIds(ctx, message_id)
+
 }
 
 export const textHandler = async (ctx: any) => {
@@ -23,7 +24,7 @@ export const textHandler = async (ctx: any) => {
     const { id } = ctx.scene.state
     const { liquidityFee } = await Tokens.findOne({ _id: id })
 
-    deleteMessage(ctx, ctx.session.message_id)
+    deleteOldMessages(ctx)
     deleteMessage(ctx, ctx.message.message_id)
 
     if (isNaN(_value)) {
@@ -45,7 +46,8 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
+
     } else if (_value + liquidityFee >= 100) {
         const { message_id } = await ctx.reply(`LiquidityFee + BuyFee must be less than 100.`, {
             parse_mode: 'HTML',
@@ -55,7 +57,8 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
+
     } else {
         await Tokens.findOneAndUpdate({ _id: id }, { buyFee: _value }, { new: true })
         await ctx.scene.leave()

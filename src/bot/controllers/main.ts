@@ -10,7 +10,19 @@ import { detail as tokenDetail } from '@/bot/controllers/tokens'
 import { deleteLaunch, manageLaunchDetails, menu as manageLaunchMenu } from '@/bot/controllers/launcher/manageLaunch.controller'
 import { launchVariablesMenu } from '@/bot/controllers/launcher/launchVariables'
 import { estimateDeploymentCost, manageDeployer, predictContractAddress, sendEth, sendEthConfirm, sendToken, sendTokenConfirmDeployer } from '@/bot/controllers/launcher/launchDeployers'
-import { createWallets, generateWallets, manageWallets, saveWallets, sendEthWallet, sendEthConfirmWallet, emptyAllWallets, sendTokenDeployer, sendTokenDeployerConfirm, sendTokenWallet, sendTokenWalletConfirm } from '@/bot/controllers/launcher/manageWallets'
+import {
+    createWallets,
+    generateWallets,
+    manageWallets,
+    saveWallets,
+    sendEthWallet,
+    sendEthConfirmWallet,
+    emptyAllWallets,
+    sendTokenDeployer,
+    sendTokenDeployerConfirm,
+    sendTokenWallet,
+    sendTokenWalletConfirm
+} from '@/bot/controllers/launcher/manageWallets'
 import { bundledWalletsMenu } from '@/bot/controllers/launcher/bundledWallets'
 import { replyWithUpdatedMessage, showNotification } from '@/share/utils'
 import { ownershipSetting, transferOwnershipConfirm, transferOwnership, renounceOwnershipConfirm, renounceOwnership } from '@/bot/controllers/tokens/ownershipSettings'
@@ -56,7 +68,7 @@ export const callbackQuery = async (ctx: any) => {
     if (selectedOption == 'setup_wizard') {
         await Launches.deleteMany({ userId: ctx.chat.id, enabled: false })
         launch_settings(ctx)
-    } else if (selectedOption.startsWith('instantLaunch_') || selectedOption.startsWith('autoLP_') || selectedOption.startsWith('blacklistCapability_')) {
+    } else if (selectedOption.startsWith('instantLaunch_') || selectedOption.startsWith('autoLP_') || selectedOption.startsWith('blacklistCapability_') || selectedOption.startsWith('uniswapV2_') || selectedOption.startsWith('uniswapV3_')) {
         handleSetupWizard(ctx, selectedOption.split('_')[0], selectedOption.split('_')[1])
     } else if (selectedOption.startsWith('scene_')) {
         const [_, sceneName, id] = selectedOption.split('_')

@@ -3,6 +3,8 @@ import { Schema, Model, model } from 'mongoose'
 export interface IToken extends Document {
     instantLaunch: boolean
     autoLP: boolean
+    uniswapV2: boolean
+    uniswapV3: boolean
     // process
     lpAdded: boolean
     swapEnabled: boolean
@@ -23,6 +25,9 @@ export interface IToken extends Document {
     sellFee: number
     liquidityFee: number
     swapThreshold: number
+    feeTier: number
+    lowerPrice: number
+    higherPrice: number
 
     website: string
     twitter: string
@@ -47,6 +52,7 @@ export interface IToken extends Document {
     ]
     minBuy: number
     maxBuy: number
+    nftId: number
 }
 interface ITokenModel extends Model<IToken> {}
 
@@ -62,6 +68,14 @@ const TokenSchema: Schema = new Schema({
         default: false
     },
     autoLP: {
+        type: Boolean,
+        default: false
+    },
+    uniswapV2: {
+        type: Boolean,
+        default: true
+    },
+    uniswapV3: {
         type: Boolean,
         default: false
     },
@@ -133,6 +147,19 @@ const TokenSchema: Schema = new Schema({
         type: Number,
         default: 0.5 //percent
     },
+    /////// V3 add LP settings
+    feeTier: {
+        type: Number,
+        default: 10000 //V3 Fee Tier
+    },
+    lowerPrice: {
+        type: Number,
+        default: 50 //percent of Current Price
+    },
+    higherPrice: {
+        type: Number,
+        default: 300 //percent of Current Price
+    },
     /////// social settings
     website: {
         type: String,
@@ -186,6 +213,10 @@ const TokenSchema: Schema = new Schema({
         default: 0 //percent
     },
     maxBuy: {
+        type: Number,
+        default: 0 //percent
+    },
+    nftId: {
         type: Number,
         default: 0 //percent
     }

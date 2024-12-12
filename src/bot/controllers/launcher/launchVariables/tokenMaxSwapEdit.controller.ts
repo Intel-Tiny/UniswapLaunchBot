@@ -1,6 +1,6 @@
 import Launches from '@/models/Launch'
 import { launchVariablesMenu } from '@/bot/controllers/launcher/launchVariables/index'
-import { deleteMessage, deleteOldMessages } from '@/share/utils'
+import { deleteMessage, deleteOldMessages, saveOldMsgIds } from '@/share/utils'
 import { checkExit } from '@/share/utils'
 
 export const enterScene = async (ctx: any) => {
@@ -13,7 +13,7 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
-    ctx.session.message_id = message_id
+    saveOldMsgIds(ctx, message_id)
 }
 
 export const textHandler = async (ctx: any) => {
@@ -23,7 +23,7 @@ export const textHandler = async (ctx: any) => {
     const { id } = ctx.scene.state
     const { maxWallet, maxBuy } = id.length > 1 ? await Launches.findById(id) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, {}, { new: true, upsert: true })
 
-    deleteMessage(ctx, ctx.session.message_id)
+    deleteOldMessages(ctx)
     deleteMessage(ctx, ctx.message.message_id)
 
     try {
@@ -43,6 +43,6 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
     }
 }

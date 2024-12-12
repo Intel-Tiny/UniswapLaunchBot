@@ -1,6 +1,6 @@
 import { deleteMessage } from '@/share/utils'
 import { createWallets } from '.'
-import { checkExit, deleteOldMessages } from '@/share/utils'
+import { checkExit, deleteOldMessages, saveOldMsgIds } from '@/share/utils'
 
 export const enterScene = async (ctx: any) => {
     deleteOldMessages(ctx)
@@ -13,7 +13,8 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
-    ctx.session.message_id = message_id
+    saveOldMsgIds(ctx, message_id)
+
 }
 
 export const textHandler = async (ctx: any) => {
@@ -22,15 +23,17 @@ export const textHandler = async (ctx: any) => {
     const _value = ctx.message.text
     const { id } = ctx.scene.state
 
-    deleteMessage(ctx, ctx.session.message_id)
+    deleteOldMessages(ctx)
     deleteMessage(ctx, ctx.message.message_id)
 
     if (isNaN(_value)) {
         const { message_id } = await ctx.reply(`Input must be a number.`)
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
+
     } else if (Number(_value) > 40) {
         const { message_id } = await ctx.reply(`Maximum amount of wallets is 40.`)
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
+
     } else {
         ctx.session.createWalletAmount = _value //or should store in db?
         await ctx.scene.leave()

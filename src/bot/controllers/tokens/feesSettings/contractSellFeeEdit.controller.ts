@@ -1,6 +1,6 @@
 import { deleteMessage } from '@/share/utils'
 import { udpateFeesMenu } from '.'
-import { checkExit, deleteOldMessages } from '@/share/utils'
+import { checkExit, deleteOldMessages, saveOldMsgIds } from '@/share/utils'
 import Tokens from '@/models/Tokens'
 
 export const enterScene = async (ctx: any) => {
@@ -14,7 +14,7 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
-    ctx.session.message_id = message_id
+    saveOldMsgIds(ctx, message_id)
 }
 
 export const textHandler = async (ctx: any) => {
@@ -24,7 +24,7 @@ export const textHandler = async (ctx: any) => {
     const { id } = ctx.scene.state
     const { liquidityFee } = await Tokens.findOne({ _id: id })
 
-    deleteMessage(ctx, ctx.session.message_id)
+    deleteOldMessages(ctx)
     deleteMessage(ctx, ctx.message.message_id)
 
     if (isNaN(_value)) {
@@ -36,7 +36,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
     } else if (_value >= 100 || _value < 0) {
         const { message_id } = await ctx.reply(`Sell Fee must be greater than 0 and less than 100.`, {
             parse_mode: 'HTML',
@@ -46,7 +46,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
     } else if (_value + liquidityFee >= 100) {
         const { message_id } = await ctx.reply(`SellFee + LiquidityFee must be less than 100.`, {
             parse_mode: 'HTML',
@@ -56,7 +56,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
     } else {
         await Tokens.findOneAndUpdate({ _id: id }, { sellFee: _value }, { new: true })
         await ctx.scene.leave()

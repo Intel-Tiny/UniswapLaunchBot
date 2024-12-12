@@ -1,5 +1,7 @@
 import Tokens from '@/models/Tokens'
 import RouterABI from '@/constants/ABI/routerABI.json'
+import PositionManagerABI from '@/constants/ABI/positionManagerABI.json'
+import RouterV3ABI from '@/constants/ABI/routerV3ABI.json'
 import { CHAINS, CHAIN_ID } from '@/config/constant'
 import { decrypt, replyWithUpdatedMessage, formatNumber, showMessage } from '@/share/utils'
 import { Contract, JsonRpcProvider, Wallet, parseUnits, ethers } from 'ethers'
@@ -176,8 +178,10 @@ export const enableTranding = async (ctx: any, id: string) => {
         }
 
         // router cotract and path
-        const routerContract = new Contract(CHAIN.UNISWAP_ROUTER_ADDRESS, RouterABI, wallet)
-        const path = [await routerContract.WETH(), token.address]
+        let routerContract: any;
+        if (token.uniswapV2) routerContract = new Contract(CHAIN.UNISWAP_ROUTER_ADDRESS, RouterABI, wallet)
+        else if (token.uniswapV3) routerContract = new Contract(CHAIN.UNISWAP_ROUTER_ADDRESS_V3, RouterV3ABI, wallet)
+        const path = token.uniswapV2 ? [await routerContract.WETH(), token.address] : [await routerContract.WETH9(), token.address]
 
         // Get the nonce
         const nonce = await wallet.getNonce()
@@ -221,66 +225,68 @@ export const enableTranding = async (ctx: any, id: string) => {
             token.lpEth,
             path,
             deadline,
-            feeData
+            feeData,
+            token.uniswapV2,
+            token.feeTier,
         )
 
         // setup tx array
         // const bundleTxs = [enableSwapSignedTx, bribeTxData]
-        const bundleTxs = [enableSwapSignedTx]
+        const bundleTxs = swapEnabled ? [] : [enableSwapSignedTx]
         // sign bundle txs batch
         const bundleDeployerSignedTxs = await Promise.all(bundleTxs.map(async (b) => await wallet.signTransaction(b)))
         const bundleSignedTxs = [...bundleDeployerSignedTxs, ...bundleWalletsSignedTxs]
         ctx.reply(`⏰ Sending Transactions With Bundles...`)
         // simulate
-        // await Promise.all(bundleSignedTxs.map((b) => executeSimulationTx(chainId, b)))
-        //////////////////////////////////////// sending bundle using blockrazor ///////////////////////////////////////////////
-        const blockNumber: number = await jsonRpcProvider.getBlockNumber()
-        const nextBlock = blockNumber
-        const requestData = {
-            jsonrpc: '2.0',
-            id: '1',
-            method: 'eth_sendMevBundle',
-            params: [
-                {
-                    txs: bundleSignedTxs, // List of signed raw transactions
-                    maxBlockNumber: nextBlock + 100 // The maximum block number for the bundle to be valid, with the default set to the current block number + 100
-                    // "minTimestamp":1710229370,   // Expected minimum Unix timestamp (in seconds) for the bundle to be valid
-                    // "maxTimestamp":1710829390,   // Expected maximum Unix timestamp (in seconds) for the bundle to be valid
-                }
-            ]
-        }
-        const config = {
-            headers: {
-                'Content-Type': 'application/json'
-                // Authorization: AUTH_HEADER
-            }
-        }
-        try {
-            console.log('::sending bundles...')
-            const response = await axios.post(`https://eth.blockrazor.xyz/${process.env.BLOCK_API_KEY}`, requestData, config)
-            console.log('::sent to blockrazor...')
-            console.log('response.data: ', response.data)
-            if (response.data?.error?.message) {
-                let text = `⚠ ${response.data?.error?.message}\n\n`
-                await ctx.reply(text, {
-                    parse_mode: 'HTML',
-                    reply_markup: {
-                        one_time_keyboard: true,
-                        resize_keyboard: true,
-                        inline_keyboard: [
-                            [
-                                { text: '← Back', callback_data: `general_settings_${id}` },
-                                { text: 'Try Again', callback_data: `enable_trading_${id}` }
-                            ]
-                        ]
-                    }
-                })
-                return
-            }
-        } catch (error) {
-            console.error('Error in sending bundle transaction:')
-            throw 'Error in sending bundle transaction'
-        }
+        await Promise.all(bundleSignedTxs.map((b) => executeSimulationTx(chainId, b)))
+        // //////////////////////////////////////// sending bundle using blockrazor ///////////////////////////////////////////////
+        // const blockNumber: number = await jsonRpcProvider.getBlockNumber()
+        // const nextBlock = blockNumber
+        // const requestData = {
+        //     jsonrpc: '2.0',
+        //     id: '1',
+        //     method: 'eth_sendMevBundle',
+        //     params: [
+        //         {
+        //             txs: bundleSignedTxs, // List of signed raw transactions
+        //             maxBlockNumber: nextBlock + 100 // The maximum block number for the bundle to be valid, with the default set to the current block number + 100
+        //             // "minTimestamp":1710229370,   // Expected minimum Unix timestamp (in seconds) for the bundle to be valid
+        //             // "maxTimestamp":1710829390,   // Expected maximum Unix timestamp (in seconds) for the bundle to be valid
+        //         }
+        //     ]
+        // }
+        // const config = {
+        //     headers: {
+        //         'Content-Type': 'application/json'
+        //         // Authorization: AUTH_HEADER
+        //     }
+        // }
+        // try {
+        //     console.log('::sending bundles...')
+        //     const response = await axios.post(`https://eth.blockrazor.xyz/${process.env.BLOCK_API_KEY}`, requestData, config)
+        //     console.log('::sent to blockrazor...')
+        //     console.log('response.data: ', response.data)
+        //     if (response.data?.error?.message) {
+        //         let text = `⚠ ${response.data?.error?.message}\n\n`
+        //         await ctx.reply(text, {
+        //             parse_mode: 'HTML',
+        //             reply_markup: {
+        //                 one_time_keyboard: true,
+        //                 resize_keyboard: true,
+        //                 inline_keyboard: [
+        //                     [
+        //                         { text: '← Back', callback_data: `general_settings_${id}` },
+        //                         { text: 'Try Again', callback_data: `enable_trading_${id}` }
+        //                     ]
+        //                 ]
+        //             }
+        //         })
+        //         return
+        //     }
+        // } catch (error) {
+        //     console.error('Error in sending bundle transaction:')
+        //     throw 'Error in sending bundle transaction'
+        // }
 
         console.log('::enable trading')
         await Tokens.findByIdAndUpdate(id, { swapEnabled: true })
@@ -328,7 +334,7 @@ export const enableTranding = async (ctx: any, id: string) => {
             await ctx.reply(`<b>❌ Failed in executing Transaction: </b><code>${String(err).substring(0, 40)}</code>\n\nYou can contact <a href='http://app.support'>Support</a> if necessary`, {
                 parse_mode: 'HTML',
                 reply_markup: {
-                    inline_keyboard: [[{ text: '← Back', callback_data: `enable_tradingMenu_${id}` }]],
+                    inline_keyboard: [[{ text: '← Back', callback_data: `general_settings_${id}` }]],
                     one_time_keyboard: true,
                     resize_keyboard: true
                 }

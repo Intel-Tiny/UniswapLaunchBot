@@ -1,5 +1,5 @@
 import { burnLiquidityMenu } from '.'
-import { checkExit, deleteMessage, deleteOldMessages } from '@/share/utils'
+import { checkExit, deleteMessage, deleteOldMessages, saveOldMsgIds } from '@/share/utils'
 
 export const enterScene = async (ctx: any) => {
     deleteOldMessages(ctx)
@@ -12,7 +12,8 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
-    ctx.session.message_id = message_id
+    saveOldMsgIds(ctx, message_id)
+
 }
 
 export const textHandler = async (ctx: any) => {
@@ -21,7 +22,7 @@ export const textHandler = async (ctx: any) => {
     const value = Number(ctx.message.text)
     const { id } = ctx.scene.state
 
-    deleteMessage(ctx, ctx.session.message_id)
+    deleteOldMessages(ctx)
     deleteMessage(ctx, ctx.message.message_id)
 
     if (isNaN(value)) {
@@ -33,7 +34,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
     } else if (value > 100 || value <= 0) {
         const { message_id } = await ctx.reply(`LP burn percentage must be greater than 0 and less than 100.`, {
             parse_mode: 'HTML',
@@ -43,7 +44,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
     } else {
         ctx.session.burnPercentage = value
         await ctx.scene.leave()

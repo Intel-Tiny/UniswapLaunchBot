@@ -13,8 +13,8 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
+    saveOldMsgIds(ctx, message_id)
 
-    ctx.session.message_id = message_id
     
 }
 
@@ -27,6 +27,8 @@ export const textHandler = async (ctx: any) => {
     const { liquidityFee } = id.length > 1 ? await Launches.findById(id) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, {}, { new: true, upsert: true })
 
     deleteOldMessages(ctx)
+    deleteMessage(ctx, ctx.message.message_id)
+
 
     if (isNaN(_value)) {
         const { message_id } = await ctx.reply(`<b>Invalid Number</b> Buy Fee should be number (percent)` + `<i>(example: 2 or 3)</i>`, {
@@ -37,7 +39,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
     } else if (_value > 100 || _value < 0) {
         const { message_id } = await ctx.reply(`Buy Fee must be greater than 0 and less than 100.`, {
             parse_mode: 'HTML',
@@ -47,7 +49,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
     } else if (_value + liquidityFee >= 100) {
         const { message_id } = await ctx.reply(`LiquidityFee + BuyFee must be less than 100.`, {
             parse_mode: 'HTML',
@@ -57,10 +59,11 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
     } else {
         id.length > 1 ? await Launches.findOneAndUpdate({ _id: id }, { buyFee: _value }, { new: true }) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, { buyFee: _value }, { new: true, upsert: true })
         await ctx.scene.leave()
         launchFeesMenu(ctx, id)
     }
+    
 }

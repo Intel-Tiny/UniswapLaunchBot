@@ -13,7 +13,7 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
-    ctx.session.message_id = message_id
+    saveOldMsgIds(ctx, message_id)
     
 }
 
@@ -25,6 +25,7 @@ export const textHandler = async (ctx: any) => {
     const { id } = ctx.scene.state
 
     deleteOldMessages(ctx)
+    deleteMessage(ctx, ctx.message.message_id)
 
     if (isAddress(_value)) {
         ctx.session.ethReceiveAddress = _value
@@ -39,6 +40,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
+
     }
 }

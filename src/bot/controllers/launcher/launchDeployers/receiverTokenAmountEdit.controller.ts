@@ -12,7 +12,7 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
-    ctx.session.message_id = message_id
+    saveOldMsgIds(ctx, message_id)
 }
 
 export const textHandler = async (ctx: any) => {
@@ -23,6 +23,7 @@ export const textHandler = async (ctx: any) => {
     const { id } = ctx.scene.state
 
     deleteOldMessages(ctx)
+    deleteMessage(ctx, ctx.message.message_id)
 
     try {
         if (isNaN(_value)) throw `⚠ Input must be a valid number.`
@@ -40,6 +41,6 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
     }
 }

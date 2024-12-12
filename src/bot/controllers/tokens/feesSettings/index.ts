@@ -1,6 +1,6 @@
 import { CHAINS, CHAIN_ID } from '@/config/constant'
 import Tokens from '@/models/Tokens'
-import { catchContractErrorException, decrypt, replyWarningMessage, replyWithUpdatedMessage } from '@/share/utils'
+import { catchContractErrorException, decrypt, replyWarningMessage, replyWithUpdatedMessage, showMessage } from '@/share/utils'
 import { Contract, JsonRpcProvider, Wallet, parseEther } from 'ethers'
 import { Markup } from 'telegraf'
 
@@ -18,8 +18,8 @@ export const feesSettingsMenu = async (ctx: any, id: string) => {
     const text =
         `<b>Fees Settings</b>\n` +
         `Use this menu to call all functions that are related to the Fees of <code>${_token.symbol}</code>.\n\n` +
-        `<b>Update Fees</b> - Change the Buy/Sell Tax that is applied to all Swaps of your Token.\n` +
-        `<b>Update Fee Threshold</b> - Change the Swap Threshold for your Token Tax. This is the value that determines the size of your Tax sells.\n (Ideally this should be decreased as your Market Capitalization increases to reduce the impact on your chart of your tax.)\n`
+        `<b>Update Fees</b> - Change the Buy/Sell Tax that is applied to all Swaps of your Token.\n` 
+        // `<b>Update Fee Threshold</b> - Change the Swap Threshold for your Token Tax. This is the value that determines the size of your Tax sells.\n (Ideally this should be decreased as your Market Capitalization increases to reduce the impact on your chart of your tax.)\n`
 
     const settings = {
         parse_mode: 'HTML',
@@ -27,7 +27,7 @@ export const feesSettingsMenu = async (ctx: any, id: string) => {
             inline_keyboard: [
                 [
                     { text: 'Update Fees', callback_data: `udpate_fees_${id}` },
-                    { text: 'Update Fee Threshold', callback_data: `update_feeThreshold_${id}` }
+                    // { text: 'Update Fee Threshold', callback_data: `update_feeThreshold_${id}` }
                 ],
                 [{ text: '← Back', callback_data: `manage_token_${id}` }]
             ],
@@ -50,8 +50,6 @@ export const udpateFeesMenu = async (ctx: any, id: string) => {
     const text =
         `<b>Update Fees</b>\n` +
         `Use this menu to change the Buy/Sell Fees that is applied to all Swaps of your Token.\n\n` +
-        `Buy Fee+Liquidity Fee=Total Buy Fee.\n` +
-        `Sell Fee+Liquidity Fee=Total Sell Fee.\n\n` +
         `<i>Note: Buy and Sell Fees cannot be higher than your initial.</i>`
 
     const settings = {
@@ -62,7 +60,7 @@ export const udpateFeesMenu = async (ctx: any, id: string) => {
                     { text: `Buy Fee: ${_token?.buyFee}`, callback_data: `scene_contractBuyFeeEditScene_${id}` },
                     { text: `Sell Fee: ${_token?.sellFee}`, callback_data: `scene_contractSellFeeEditScene_${id}` }
                 ],
-                [{ text: `Liquidity Fee: ${_token?.liquidityFee}`, callback_data: `scene_contractLiquidityFeeEditScene_${id}` }],
+                // [{ text: `Liquidity Fee: ${_token?.liquidityFee}`, callback_data: `scene_contractLiquidityFeeEditScene_${id}` }],
                 [
                     { text: '× Cancel', callback_data: `fees_settings_${id}` },
                     { text: '✔ Confirm', callback_data: `confirm_udpateFees_${id}` }
@@ -128,6 +126,7 @@ export const updateFees = async (ctx: any, id: string) => {
                 }
             })
         } else {
+            showMessage(ctx, '⏰ Updating Fees...')
             const feeData = await jsonRpcProvider.getFeeData()
             const tx = await tokenContract.setFees(Math.ceil(buyFee), Math.ceil(sellFee), Math.ceil(liquidityFee), {
                 maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,

@@ -245,23 +245,18 @@ library SafeMath {
     }
 }
 
-interface IUniswapV2Factory {
-    function createPair(address tokenA, address tokenB) external returns (address pair);
-    function getPair(address tokenA, address tokenB) external view returns (address pair);
-}
-
-interface IUniswapV2Router02 {
-    function factory() external pure returns (address);
-    function WETH() external pure returns (address);
-    function addLiquidityETH(address token, uint amountTokenDesired, uint amountTokenMin, uint amountETHMin, address to, uint deadline) external payable returns (uint amountToken, uint amountETH, uint liquidity);
-    function swapExactTokensForETHSupportingFeeOnTransferTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external;
+interface IUniswapV3Factory {
+    function createPool(
+        address tokenA,
+        address tokenB,
+        uint24 fee
+    ) external returns (address pool);
 }
 
 contract CONTRACT_SYMBOL is ERC20, Ownable {
     using SafeMath for uint256;
 
-    IUniswapV2Router02 private constant _router = IUniswapV2Router02(CONTRACT_UNISWAP_ROUTER);
-
+    IUniswapV3Factory factory = IUniswapV3Factory(CONTRACT_UNISWAP_ROUTER);
     address public uniPair;
     address public immutable feeRecipientAddress;
 
@@ -272,6 +267,8 @@ contract CONTRACT_SYMBOL is ERC20, Ownable {
     uint256 public sellTax;
 
     bool public swapEnabled = false;
+    address public WETH_ADDRESS = 0x4200000000000000000000000000000000000006;
+    uint24 public FEE_TIER = 10000;
 
     mapping(address => bool) private _isExcludedFromLimits;
     mapping(address => bool) public blacklisted;
@@ -289,7 +286,7 @@ contract CONTRACT_SYMBOL is ERC20, Ownable {
         buyTax = CONTRACT_BUY_FEE;
         sellTax = CONTRACT_SELL_FEE;
 
-        uniPair = IUniswapV2Factory(_router.factory()).createPair(address(this), _router.WETH());
+        uniPair = factory.createPool(address(this), WETH_ADDRESS, FEE_TIER);
         _isExcludedFromLimits[feeRecipientAddress] = true;
         _isExcludedFromLimits[msg.sender] = true;
         _isExcludedFromLimits[tx.origin] = true;
@@ -333,7 +330,6 @@ contract CONTRACT_SYMBOL is ERC20, Ownable {
     }
 
     function setFees(uint256 newBuyFee, uint256 newSellFee, uint256 newLiquidityFee) external onlyOwner {
-        // require(newBuyFee <= CONTRACT_BUY_FEE && newSellFee <= CONTRACT_SELL_FEE && newLiquidityFee <= CONTRACT_LP_FEE, 'Attempting to set fee higher than initial fee.');
         buyTax = newBuyFee;
         sellTax = newSellFee;
     }

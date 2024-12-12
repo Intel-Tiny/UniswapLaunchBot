@@ -2,7 +2,8 @@ import Launches from '@/models/Launch'
 import { formatNumber, replyWithUpdatedMessage } from '@/share/utils'
 
 export const launchTokenomicsMenu = async (ctx: any, id: string = '') => {
-    const { lpSupply, lpEth, contractFunds, totalSupply } = id.length > 1 ? await Launches.findById(id) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, {}, { new: true, upsert: true })
+    const { lpSupply, lpEth, contractFunds, totalSupply, feeTier, lowerPrice, higherPrice, uniswapV3 } =
+        id.length > 1 ? await Launches.findById(id) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, {}, { new: true, upsert: true })
 
     const text =
         `<b>Launch Creation in Progress…</b>\n` +
@@ -29,6 +30,16 @@ export const launchTokenomicsMenu = async (ctx: any, id: string = '') => {
                     }
                 ],
                 [{ text: `💳 Contract Funds ${formatNumber(totalSupply * contractFunds * 0.01)}`, callback_data: `scene_tokenFundsEditScene_${id}` }],
+                uniswapV3 ? [{ text: `🦄 Fee Tier ${feeTier / 10000} (%)`, callback_data: `#` }] : [],
+                uniswapV3
+                    ? [
+                          { text: `🛩 Lower Price ${lowerPrice} (%)`, callback_data: `scene_tokenLowerPriceEditScene_${id}` },
+                          {
+                              text: `🛩 Higher Price ${higherPrice} (%)`,
+                              callback_data: `scene_tokenHigherPriceEditScene_${id}`
+                          }
+                      ]
+                    : [],
                 [{ text: '======', callback_data: '#' }],
                 [
                     { text: '← Back', callback_data: `launch_settings_${id}` },

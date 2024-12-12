@@ -5,7 +5,7 @@ import { deleteMessage, deleteOldMessages, checkExit, saveOldMsgIds } from '@/sh
 export const enterScene = async (ctx: any) => {
     deleteOldMessages(ctx)
 
-    const { message_id } = await ctx.reply(`<b>Enter the amount of LP Supply (in %) </b>\n` + `This is the amount of supply that you want to be in the liquidity pool. \n` + `<i>(example: 75 or 100)</i>`, {
+    const { message_id } = await ctx.reply(`<b>Enter the amount of Lower Price  </b>\n` + `This is the the percent of current price. \n` + `<i>(example: 40)</i>`, {
         parse_mode: 'HTML',
         reply_markup: {
             force_reply: true,
@@ -14,7 +14,7 @@ export const enterScene = async (ctx: any) => {
         }
     })
     saveOldMsgIds(ctx, message_id)
-    
+
 }
 
 export const textHandler = async (ctx: any) => {
@@ -22,20 +22,16 @@ export const textHandler = async (ctx: any) => {
     const check = await checkExit(ctx)
     if (check) return
     const { id } = ctx.scene.state
-    const { contractFunds, maxWallet } = id.length > 1 ? await Launches.findById(id) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, {}, { new: true, upsert: true })
+    const _value = Number(ctx.message.text)
 
     deleteOldMessages(ctx)
     deleteMessage(ctx, ctx.message.message_id)
 
-    const _value = Number(ctx.message.text)
-
     try {
-        if (isNaN(_value)) throw `<b>Invalid Number</b> LP supply should be number (percent)` + `<i>(example: 75 or 100)</i>`
-        if (_value <= 0) throw `LP supply must be greater than 0`
-        if (_value + contractFunds > 100) throw `LP Supply + Contract Funds cannot be greater than 100.`
-        if (_value < maxWallet) throw `Your current maxWallet is <code>${maxWallet}%</code>. LpSupply must be greater than maxWallet.`
+        if (isNaN(_value)) throw `<b>Invalid Number</b> Lower Price should be number (percent)` + `<i>(example: 40)</i>`
+        if (_value < 1) throw `Lower Price must be greater than 1 %`
 
-        id.length > 1 ? await Launches.findOneAndUpdate({ _id: id }, { lpSupply: _value }, { new: true }) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, { lpSupply: _value }, { new: true, upsert: true })
+        id.length > 1 ? await Launches.findOneAndUpdate({ _id: id }, { lowerPrice: _value }, { new: true }) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, { lowerPrice: _value }, { new: true, upsert: true })
         await ctx.scene.leave()
         launchTokenomicsMenu(ctx, id)
     } catch (err) {
@@ -48,6 +44,6 @@ export const textHandler = async (ctx: any) => {
             }
         })
         saveOldMsgIds(ctx, message_id)
-        
+
     }
 }

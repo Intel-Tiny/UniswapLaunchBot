@@ -16,6 +16,9 @@ export type CHAIN = {
     ETHERSCAN_API_KEY: string
     ETHERSCAN_API_URL: string
     UNISWAP_ROUTER_ADDRESS: string
+    UNISWAP_ROUTER_ADDRESS_V3: string
+    UNISWAP_FACTORY_ADDRESS_V3: string
+    POSITION_MANAGER_ADDRESS: string
     BRIBE_ADDRESS: string
     BRIBE_AMOUNT: number
 }

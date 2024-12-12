@@ -1,6 +1,6 @@
 import Tokens from '@/models/Tokens'
 import { CHAINS, CHAIN_ID } from '@/config/constant'
-import { catchContractErrorException, decrypt, replyWarningMessage, replyWithUpdatedMessage } from '@/share/utils'
+import { catchContractErrorException, decrypt, replyWarningMessage, replyWithUpdatedMessage, showMessage } from '@/share/utils'
 import { Contract, JsonRpcProvider, Wallet } from 'ethers'
 import { Markup } from 'telegraf'
 
@@ -119,6 +119,8 @@ export const transferOwnership = async (ctx: any, id: string) => {
                 }
             })
         } else {
+            showMessage(ctx, '⏰ Transferring Ownership...')
+
             const feeData = await jsonRpcProvider.getFeeData()
             const tx = await tokenContract.transferOwnership(newOwner, {
                 maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
@@ -163,6 +165,7 @@ export const renounceOwnership = async (ctx: any, id: string) => {
                 }
             })
         } else {
+            showMessage(ctx, '⏰ Renouncing Ownership...')
             const feeData = await jsonRpcProvider.getFeeData()
             const tx = await tokenContract.renounceOwnership({
                 maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,

@@ -7,7 +7,7 @@ import { Markup } from 'telegraf'
 
 export const bundledWalletsMenu = async (ctx: any, id: string = '') => {
     const { minBuy, maxBuy, bundledWallets } = id.length > 1 ? await Launches.findById(id) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, {}, { new: true, upsert: true })
-
+    console.log("id: ", id.length)
     const text =
         `<b>Bundled Wallets</b>\n` +
         `Setup your Bundled Wallets and prepare them for Launch. \n` +

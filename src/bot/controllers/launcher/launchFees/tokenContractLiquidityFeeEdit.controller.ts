@@ -14,6 +14,7 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
+    saveOldMsgIds(ctx, message_id)
     
 }
 
@@ -28,9 +29,12 @@ export const textHandler = async (ctx: any) => {
     const _value = Number(ctx.message.text)
 
     deleteOldMessages(ctx)
+    deleteMessage(ctx, ctx.message.message_id)
+
 
     if (buyFee === 0 && sellFee === 0) {
         const { message_id } = await ctx.reply(`You must either have a buy or sell fee before you can set your liquidity fee.`)
+        saveOldMsgIds(ctx, message_id)
         
         await ctx.scene.leave()
         launchFeesMenu(ctx, id)
@@ -43,6 +47,8 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
+        saveOldMsgIds(ctx, message_id)
+
         
     } else if (_value > 100 || _value < 0) {
         const { message_id } = await ctx.reply(`Liquidity Fee must be greater than 0 and less than 100.`, {
@@ -53,6 +59,8 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
+        saveOldMsgIds(ctx, message_id)
+
         
     } else if (_value + buyFee >= 100 || _value + sellFee >= 100) {
         const { message_id } = await ctx.reply(`LiquidityFee + BuyFee or FeeLiquidityFee + SellFee must be less than 100.`, {
@@ -63,6 +71,8 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
+        saveOldMsgIds(ctx, message_id)
+
         
     } else {
         id.length > 1 ? await Launches.findOneAndUpdate({ _id: id }, { liquidityFee: _value }, { new: true }) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, { liquidityFee: _value }, { new: true, upsert: true })

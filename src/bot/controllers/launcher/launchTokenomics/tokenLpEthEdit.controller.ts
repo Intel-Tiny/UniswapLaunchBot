@@ -13,6 +13,7 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
+    saveOldMsgIds(ctx, message_id)
     
 }
 
@@ -24,6 +25,7 @@ export const textHandler = async (ctx: any) => {
     const _value = Number(ctx.message.text)
 
     deleteOldMessages(ctx)
+    deleteMessage(ctx, ctx.message.message_id)
 
     try {
         if (isNaN(_value)) throw `<b>Invalid Number</b> LP ETH should be number (percent)` + `<i>(example: 0.5 or 2)</i>`
@@ -41,6 +43,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
+        saveOldMsgIds(ctx, message_id)
         
     }
 }

@@ -1,7 +1,7 @@
 import { Wallet } from 'ethers'
 import { launch_deployers } from '.'
 import Launches from '@/models/Launch'
-import { deleteMessage, encrypt, deleteOldMessages } from '@/share/utils'
+import { deleteMessage, encrypt, deleteOldMessages, saveOldMsgIds } from '@/share/utils'
 import { checkExit } from '@/share/utils'
 
 export const enterScene = async (ctx: any) => {
@@ -16,7 +16,7 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
-    ctx.session.message_id = message_id
+    saveOldMsgIds(ctx, message_id)
 }
 // text handler
 export const textHandler = async (ctx: any) => {
@@ -24,8 +24,8 @@ export const textHandler = async (ctx: any) => {
     if (check) return
     const { id } = ctx.scene.state
     const _value = ctx.message.text
+    deleteOldMessages(ctx)
     deleteMessage(ctx, ctx.message.message_id)
-    deleteMessage(ctx, ctx.session.message_id)
     try {
         const { privateKey, address } = new Wallet(_value)
         id.length > 1
@@ -60,6 +60,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
+
     }
 }

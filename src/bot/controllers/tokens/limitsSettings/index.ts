@@ -1,6 +1,6 @@
 import { CHAINS, CHAIN_ID } from '@/config/constant'
 import Tokens from '@/models/Tokens'
-import { capitalizeFirstLetter, catchContractErrorException, decrypt, replyWarningMessage, replyWithUpdatedMessage } from '@/share/utils'
+import { capitalizeFirstLetter, catchContractErrorException, decrypt, replyWarningMessage, replyWithUpdatedMessage, showMessage } from '@/share/utils'
 import { Contract, JsonRpcProvider, Wallet } from 'ethers'
 import { Markup } from 'telegraf'
 
@@ -146,6 +146,7 @@ export const disableAllLimits = async (ctx: any, id: string) => {
                 }
             })
         } else {
+            showMessage(ctx, '⏰ Disabling All Limits...')
             const feeData = await jsonRpcProvider.getFeeData()
             const tx = await tokenContract.removeLimits({
                 maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
@@ -190,6 +191,7 @@ export const disableHoldingLimits = async (ctx: any, id: string) => {
                 }
             })
         } else {
+            showMessage(ctx, '⏰ Disabling Holding Limits...')
             const feeData = await jsonRpcProvider.getFeeData()
             const tx = await tokenContract.disableWalletLimit({
                 maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
@@ -235,6 +237,7 @@ export const disableSwapLimits = async (ctx: any, id: string) => {
                 }
             })
         } else {
+            showMessage(ctx, '⏰ Disabling Swap Limits...')
             const feeData = await jsonRpcProvider.getFeeData()
             const tx = await tokenContract.removeMaxSwap({
                 maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,

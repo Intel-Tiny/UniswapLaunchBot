@@ -3,7 +3,7 @@ import Launches from '@/models/Launch'
 import { Wallet } from 'ethers'
 import { checkExit, deleteOldMessages } from '@/share/utils'
 import { manageWallets } from '.'
-import { deleteMessage, encrypt, replyWarningMessage } from '@/share/utils'
+import { deleteMessage, encrypt, replyWarningMessage, saveOldMsgIds } from '@/share/utils'
 
 export const enterScene = async (ctx: any) => {
     deleteOldMessages(ctx)
@@ -28,7 +28,8 @@ export const enterScene = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
+
     }
 }
 
@@ -49,7 +50,7 @@ export const textHandler = async (ctx: any) => {
     const launch = id ? (id.startsWith('token') ? await Tokens.findById(id.substr(5)) : await Launches.findById(id)) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, {}, { new: true, upsert: true })
     const bundledWallets: any[] = launch?.bundledWallets ?? []
 
-    deleteMessage(ctx, ctx.session.message_id)
+    deleteOldMessages(ctx)
     deleteMessage(ctx, ctx.message.message_id)
 
     const privateKeyArr = _value

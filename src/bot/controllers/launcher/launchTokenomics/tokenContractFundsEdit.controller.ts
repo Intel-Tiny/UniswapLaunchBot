@@ -13,6 +13,7 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
+    saveOldMsgIds(ctx, message_id)
     
 }
 
@@ -25,6 +26,7 @@ export const textHandler = async (ctx: any) => {
     const _value = Number(ctx.message.text)
 
     deleteOldMessages(ctx)
+    deleteMessage(ctx, ctx.message.message_id)
 
     if (isNaN(_value)) {
         const { message_id } = await ctx.reply(`<b>Invalid Number</b> It should be number (percent)` + `<i>(example: 1 or 5)</i>`, {
@@ -35,6 +37,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
+        saveOldMsgIds(ctx, message_id)
         
     } else if (_value > 25 || _value < 0) {
         const { message_id } = await ctx.reply(`CA Funds must be greater than 0 and less than 25.`, {
@@ -45,6 +48,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
+        saveOldMsgIds(ctx, message_id)
         
     } else if (_value + lpSupply > 100) {
         const { message_id } = await ctx.reply(`LP Supply + Contract Funds cannot be greater than 100.`, {
@@ -55,6 +59,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
+        saveOldMsgIds(ctx, message_id)
         
     } else {
         id.length > 1 ? await Launches.findOneAndUpdate({ _id: id }, { contractFunds: _value }, { new: true }) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, { contractFunds: _value }, { new: true, upsert: true })

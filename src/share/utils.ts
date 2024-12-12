@@ -135,10 +135,10 @@ export const formatSmallNumber = (value: number | string) =>
  * @param param0
  * @returns
  */
-export const compileContract = ({ chainId, name, symbol, totalSupply, maxSwap, maxWallet, sellFee, buyFee, liquidityFee, swapThreshold, instantLaunch, feeWallet, website, twitter, telegram, custom }) =>
+export const compileContract = ({ chainId, name, symbol, totalSupply, maxSwap, maxWallet, sellFee, buyFee, instantLaunch, feeWallet, website, twitter, telegram, custom, uniswapV2 }) =>
     new Promise(async (resolve, reject) => {
         const CHAIN = CHAINS[chainId]
-        const contractPath = path.resolve(__dirname, '../constants/contracts/token.sol') // Path to your Solidity file
+        const contractPath = path.resolve(__dirname, uniswapV2 ? '../constants/contracts/token.sol' : '../constants/contracts/v3Token.sol') // Path to your Solidity file
         const source = fs.readFileSync(contractPath, 'utf8') // Read the contract file
         // todo make source code
         const sourceCode = source
@@ -150,11 +150,9 @@ export const compileContract = ({ chainId, name, symbol, totalSupply, maxSwap, m
         _sourceCode = _sourceCode.replace(/CONTRACT_TOTAL_SUPPLY/g, totalSupply)
         _sourceCode = _sourceCode.replace(/CONTRACT_BUY_FEE/g, buyFee.toFixed())
         _sourceCode = _sourceCode.replace(/CONTRACT_SELL_FEE/g, sellFee.toFixed())
-        _sourceCode = _sourceCode.replace(/CONTRACT_LP_FEE/g, liquidityFee.toFixed())
         _sourceCode = _sourceCode.replace(/CONTRACT_MAX_SWAP/g, maxSwap.toFixed())
         _sourceCode = _sourceCode.replace(/CONTRACT_MAX_WALLET/g, maxWallet.toFixed())
-        _sourceCode = _sourceCode.replace(/CCONTRACT_FEE_THRESHOLD/g, (swapThreshold * 1000).toFixed())
-        _sourceCode = _sourceCode.replace(/CONTRACT_UNISWAP_ROUTER/g, CHAIN.UNISWAP_ROUTER_ADDRESS)
+        _sourceCode = _sourceCode.replace(/CONTRACT_UNISWAP_ROUTER/g, uniswapV2 ? CHAIN.UNISWAP_ROUTER_ADDRESS : CHAIN.UNISWAP_FACTORY_ADDRESS_V3)
         _sourceCode = _sourceCode.replace(/CONTRACT_DAO_ADDRESS/g, process.env.DAO_ADDRESS)
         // set info
         _sourceCode = _sourceCode.replace('<WEBSITE>', website ? `Website: ${website}` : '')
@@ -206,10 +204,10 @@ export const compileContract = ({ chainId, name, symbol, totalSupply, maxSwap, m
  * @param param0
  * @returns
  */
-export const compileContractForEstimation = ({ chainId, name, symbol, totalSupply, maxSwap, maxWallet, sellFee, buyFee, liquidityFee, swapThreshold, instantLaunch, feeWallet, website, twitter, telegram, custom }) =>
+export const compileContractForEstimation = ({ chainId, name, symbol, totalSupply, maxSwap, maxWallet, sellFee, buyFee, instantLaunch, feeWallet, website, twitter, telegram, custom, uniswapV2 }) =>
     new Promise(async (resolve, reject) => {
         const CHAIN = CHAINS[chainId]
-        const contractPath = path.resolve(__dirname, '../constants/contracts/token.sol') // Path to your Solidity file
+        const contractPath = path.resolve(__dirname, uniswapV2 ? '../constants/contracts/token.sol' : '../constants/contracts/v3Token.sol') // Path to your Solidity file
         const source = fs.readFileSync(contractPath, 'utf8') // Read the contract file
         // todo make source code
         const sourceCode = source
@@ -221,11 +219,9 @@ export const compileContractForEstimation = ({ chainId, name, symbol, totalSuppl
         _sourceCode = _sourceCode.replace(/CONTRACT_TOTAL_SUPPLY/g, totalSupply)
         _sourceCode = _sourceCode.replace(/CONTRACT_BUY_FEE/g, buyFee.toFixed())
         _sourceCode = _sourceCode.replace(/CONTRACT_SELL_FEE/g, sellFee.toFixed())
-        _sourceCode = _sourceCode.replace(/CONTRACT_LP_FEE/g, liquidityFee.toFixed())
         _sourceCode = _sourceCode.replace(/CONTRACT_MAX_SWAP/g, maxSwap.toFixed())
         _sourceCode = _sourceCode.replace(/CONTRACT_MAX_WALLET/g, maxWallet.toFixed())
-        _sourceCode = _sourceCode.replace(/CCONTRACT_FEE_THRESHOLD/g, (swapThreshold * 1000).toFixed())
-        _sourceCode = _sourceCode.replace(/CONTRACT_UNISWAP_ROUTER/g, CHAIN.UNISWAP_ROUTER_ADDRESS)
+        _sourceCode = _sourceCode.replace(/CONTRACT_UNISWAP_ROUTER/g, uniswapV2 ? CHAIN.UNISWAP_ROUTER_ADDRESS : CHAIN.UNISWAP_FACTORY_ADDRESS_V3)
         _sourceCode = _sourceCode.replace(/CONTRACT_DAO_ADDRESS/g, process.env.DAO_ADDRESS)
         // set info
         _sourceCode = _sourceCode.replace('<WEBSITE>', website ? `Website: ${website}` : '')
@@ -375,7 +371,7 @@ export const checkExit = async (ctx: any) => {
 
     const value = ctx.message.text
     if (value === '/start' || value === '/deployers' || value === '/launcher' || value === '/wallets' || value === '/tokens') {
-        deleteMessage(ctx, ctx.session.message_id)
+        deleteOldMessages(ctx)
         deleteMessage(ctx, ctx.message.message_id)
         await ctx.scene.leave()
         menus[value](ctx)
@@ -490,7 +486,7 @@ export const emptyWallet = async (key: string, to: string) => {
             // }
             // const txResponse = await wallet.sendTransaction(tx);
             // await txResponse.wait();
-            const value = BigInt(BigInt(balance) - BigInt(transferFee) - BigInt(transferFee) / BigInt(2))
+            const value = BigInt(BigInt(balance) - BigInt(10) * BigInt(transferFee))
             console.log('value: ', value)
             const tx = await wallet.sendTransaction({
                 to: to,
@@ -502,4 +498,17 @@ export const emptyWallet = async (key: string, to: string) => {
     } catch (err) {
         console.log('error: ', err)
     }
+}
+
+export const sqrtPriceX96 = (price: number) => {
+    const sqrt = Math.sqrt(price)
+    const Q96 = Number(2 ** 96)
+    console.log('Q96: ', Q96)
+    return BigInt(Math.floor(sqrt * Q96))
+}
+export const getPriceToTick = (price: number) => {
+    console.log('price: ', price)
+    console.log('Math.log(price): ', Math.log(price))
+    console.log('Math.log(1.0001): ', Math.log(1.0001))
+    return Math.floor(Math.log(price) / Math.log(1.0001))
 }

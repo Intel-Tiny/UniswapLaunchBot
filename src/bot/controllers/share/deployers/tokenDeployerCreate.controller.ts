@@ -1,7 +1,7 @@
 import { Wallet } from 'ethers'
 import { launch_deployers } from '.'
 import Launches from '@/models/Launch'
-import { deleteMessage, encrypt, deleteOldMessages } from '@/share/utils'
+import { deleteMessage, encrypt, deleteOldMessages, saveOldMsgIds } from '@/share/utils'
 import { checkExit } from '@/share/utils'
 
 export const enterScene = async (ctx: any) => {
@@ -32,7 +32,8 @@ export const enterScene = async (ctx: any) => {
             ]
         }
     })
-    ctx.session.message_id = message_id
+    saveOldMsgIds(ctx, message_id)
+
 }
 /**
  * handle callback_query
@@ -47,7 +48,9 @@ export const callbackQuery = async (ctx: any) => {
             ? await Launches.findOneAndUpdate({ _id: id }, { deployer: { key, address } }, { new: true })
             : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, { deployer: { key, address } }, { new: true, upsert: true })
     }
-    deleteMessage(ctx, ctx.session.message_id)
+    deleteOldMessages(ctx)
+    deleteMessage(ctx, ctx.message.message_id)
+
     await ctx.scene.leave()
     launch_deployers(ctx, id)
 }

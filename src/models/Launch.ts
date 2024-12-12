@@ -3,6 +3,8 @@ import { Schema, Model, model } from 'mongoose'
 export interface ILanuch extends Document {
     instantLaunch: boolean
     autoLP: boolean
+    uniswapV2: boolean
+    uniswapV3: boolean
 
     name: string
     symbol: string
@@ -20,6 +22,9 @@ export interface ILanuch extends Document {
     sellFee: number
     liquidityFee: number
     swapThreshold: number
+    feeTier: number
+    lowerPrice: number
+    higherPrice: number
 
     website: string
     twitter: string
@@ -56,6 +61,14 @@ const LaunchSchema: Schema = new Schema({
     autoLP: {
         type: Boolean,
         default: false
+    },
+    uniswapV2: {
+        type: Boolean,
+        default: true 
+    },
+    uniswapV3: {
+        type: Boolean,
+        default: false 
     },
     /////// token variables
     name: {
@@ -118,6 +131,20 @@ const LaunchSchema: Schema = new Schema({
         type: Number,
         default: 0.5 //percent
     },
+    /////// V3 add LP settings
+    feeTier: {
+        type: Number,
+        default: 10000 //V3 Fee Tier
+    },
+    lowerPrice: {
+        type: Number,
+        default: 50 //percent of Current Price
+    },
+    higherPrice: {
+        type: Number,
+        default: 300 //percent of Current Price
+    },
+
     /////// social settings
     website: {
         type: String,

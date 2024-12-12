@@ -18,7 +18,8 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
-    ctx.session.message_id = message_id
+    saveOldMsgIds(ctx, message_id)
+
 }
 
 export const textHandler = async (ctx: any) => {
@@ -29,7 +30,7 @@ export const textHandler = async (ctx: any) => {
     const launch = id ? (id.startsWith('token') ? await Tokens.findById(id.substr(5)) : await Launches.findById(id)) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, {}, { new: true, upsert: true })
     const bundledWallets = launch?.bundledWallets ?? []
 
-    deleteMessage(ctx, ctx.session.message_id)
+    deleteOldMessages(ctx)
     deleteMessage(ctx, ctx.message.message_id)
 
     // Filter out the wallet with the matching address
@@ -38,7 +39,6 @@ export const textHandler = async (ctx: any) => {
         const { message_id } = await ctx.reply(`⚠ No existing wallet for <code>${_value}</code>`, {
             parse_mode: 'HTML'
         })
-        ctx.session.message_id = message_id
         saveOldMsgIds(ctx, message_id)
     } else {
         console.log('::removeIndex', removeIndex)

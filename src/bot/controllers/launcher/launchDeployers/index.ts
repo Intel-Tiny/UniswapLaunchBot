@@ -333,14 +333,13 @@ export const estimateDeploymentCost = async (ctx: any, id: string) => {
             maxWallet: launch.maxWallet,
             sellFee: launch.sellFee,
             buyFee: launch.buyFee,
-            liquidityFee: launch.liquidityFee,
-            swapThreshold: launch.swapThreshold,
             instantLaunch: launch.instantLaunch,
             feeWallet: launch.feeWallet == 'Deployer Wallet' ? launch.deployer.address : launch.feeWallet,
             website: launch.website,
             twitter: launch.twitter,
             telegram: launch.telegram,
-            custom: launch.custom
+            custom: launch.custom,
+            uniswapV2: launch.uniswapV2
         })) as any
         console.log('::succssfully complied')
         const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)

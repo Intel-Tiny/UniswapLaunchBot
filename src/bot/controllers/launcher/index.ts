@@ -43,9 +43,23 @@ export const menu = async (ctx: any) => {
  * @param ctx
  */
 export const handleSetupWizard = async (ctx: any, type: string, id: string = '') => {
-    console.log(type, id)
+    // console.log(type, id)
     const launch = id.length > 1 ? await Launches.findById(id) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, {}, { new: true, upsert: true })
-    if (type === 'instantLaunch') {
+    if (type === 'uniswapV2') {
+        if (!launch.uniswapV2) {
+            launch.uniswapV2 = true
+            launch.uniswapV3 = false
+        }
+        await launch.save()
+        launch_settings(ctx, id)
+    } else if (type === 'uniswapV3') {
+        if (!launch.uniswapV3) {
+            launch.uniswapV2 = false
+            launch.uniswapV3 = true
+        }
+        await launch.save()
+        launch_settings(ctx, id)
+    } else if (type === 'instantLaunch') {
         if (!launch.instantLaunch) {
             launch.autoLP = true
         }

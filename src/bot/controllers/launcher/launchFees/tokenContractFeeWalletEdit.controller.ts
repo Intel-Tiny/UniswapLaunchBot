@@ -14,6 +14,8 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
+    saveOldMsgIds(ctx, message_id)
+
     
 }
 
@@ -25,6 +27,8 @@ export const textHandler = async (ctx: any) => {
     const { id } = ctx.scene.state
 
     deleteOldMessages(ctx)
+    deleteMessage(ctx, ctx.message.message_id)
+
 
     if (isAddress(_value)) {
         id.length > 1 ? await Launches.findOneAndUpdate({ _id: id }, { feeWallet: _value }, { new: true }) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, { feeWallet: _value }, { new: true, upsert: true })
@@ -32,6 +36,7 @@ export const textHandler = async (ctx: any) => {
         launchFeesMenu(ctx, id)
     } else {
         const { message_id } = await ctx.reply(`Invalid EVM address. Please retry`)
+        saveOldMsgIds(ctx, message_id)
         
     }
 }

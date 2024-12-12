@@ -13,6 +13,8 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
+    saveOldMsgIds(ctx, message_id)
+
     
 }
 
@@ -24,6 +26,8 @@ export const textHandler = async (ctx: any) => {
     const { id } = ctx.scene.state
 
     deleteOldMessages(ctx)
+    deleteMessage(ctx, ctx.message.message_id)
+
 
     if (isNaN(_value)) {
         const { message_id } = await ctx.reply(`<b>Invalid Number</b> Swap threshold should be number (percent)` + `<i>(example: 0.1 or 1)</i>`, {
@@ -34,6 +38,8 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
+        saveOldMsgIds(ctx, message_id)
+
         
     } else if (_value > 2 || _value < 0.001) {
         const { message_id } = await ctx.reply(`Swap Threshold must be greater than 0.001% and less than 2%.`, {
@@ -44,6 +50,8 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
+        saveOldMsgIds(ctx, message_id)
+
         
     } else {
         id.length > 1 ? await Launches.findOneAndUpdate({ _id: id }, { swapThreshold: _value }, { new: true }) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, { swapThreshold: _value }, { new: true, upsert: true })

@@ -12,6 +12,7 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
+    saveOldMsgIds(ctx, message_id)
 }
 
 export const textHandler = async (ctx: any) => {
@@ -24,6 +25,7 @@ export const textHandler = async (ctx: any) => {
     const { maxSwap, minBuy, maxWallet, lpSupply, bundledWallets } = id.length > 1 ? await Launches.findById(id) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, {}, { new: true, upsert: true })
 
     deleteOldMessages(ctx)
+    deleteMessage(ctx, ctx.message.message_id)
 
     try {
         if (isNaN(_value)) throw `<b>Invalid Number\n</b> Max Wallet Buy must be a number.`
@@ -48,6 +50,6 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
     }
 }

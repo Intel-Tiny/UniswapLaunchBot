@@ -3,11 +3,13 @@ import { ContractFactory, JsonRpcProvider, Wallet, Provider, Contract, parseEthe
 import Tokens from '@/models/Tokens'
 import Launches, { ILanuch } from '@/models/Launch'
 import RouterABI from '@/constants/ABI/routerABI.json'
+import RouterV3ABI from '@/constants/ABI/routerV3ABI.json'
+
 
 import { CHAIN_ID } from '@/config/constant'
 import { CHAINS } from '@/config/constant'
 import { Document, Types } from 'mongoose'
-import { executeSimulationTx, makeAddLpTransaction, makeApproveTransaction, makeBundleWalletTransaction, makeDeploymentTransaction, getBundledWalletTransactionFee } from '@/share/token'
+import { executeSimulationTx, makeAddLpTransaction, makeAddLpTransactionV3, makeApproveTransaction, makeApproveTransactionV3, makeBundleWalletTransaction, makeDeploymentTransaction, getBundledWalletTransactionFee } from '@/share/token'
 import { Markup } from 'telegraf'
 import axios from 'axios'
 
@@ -174,7 +176,7 @@ export const previewLaunch = async (ctx: any, id: string) => {
     }
 
     if (launch) {
-        const text =
+        let text =
             `<b>Are you sure you want to launch</b> <code>${launch.name}</code>?\n\n` +
             `<b>Please ensure the following parameters are correct:</b>\n\n` +
             `<i>*Token Name:</i>  <code>${launch.name}</code>\n` +
@@ -184,11 +186,12 @@ export const previewLaunch = async (ctx: any, id: string) => {
             `<i>*Liquidity:</i>  <code>${formatNumber(launch.totalSupply * launch.lpSupply * 0.01)} ${launch.symbol}</code> + <code>${formatNumber(launch.lpEth)} ETH</code>\n` +
             `<i>*Buy Tax:</i>  <code>${launch.buyFee}%</code>\n` +
             `<i>*Sell Tax:</i>  <code>${launch.sellFee}%</code>\n` +
-            `<i>*Liquidity Tax:</i>  <code>${launch.liquidityFee}%</code>\n` +
+            // `<i>*Liquidity Tax:</i>  <code>${launch.liquidityFee}%</code>\n` +
             `<i>*Max Wallet:</i>  <code>${launch.maxWallet}%</code>\n` +
-            `<i>*Max Swap:</i>  <code>${launch.maxSwap}%</code>\n` +
-            `\n<b><i>*Summary*</i></b>\n` +
-            `<code>${summary}</code>\n`
+            `<i>*Max Swap:</i>  <code>${launch.maxSwap}%</code>\n`
+        text += launch.uniswapV3
+            ? `<i>*Fee Tier:</i> <code>1 %</code>\n <i>*Lower Price:</i> <code>${launch.lowerPrice} %</code>\n <i>*Higher Price:</i> <code>${launch.higherPrice} %</code>\n`
+            : `` + `\n<b><i>*Summary*</i></b>\n` + `<code>${summary}</code>\n`
         const settings = {
             parse_mode: 'HTML',
             reply_markup: {
@@ -228,93 +231,177 @@ const launchWithInstant = async (
     const CHAIN = CHAINS[chainId]
 
     console.log('::chain info:', CHAIN)
+    if (launch.uniswapV2) {
+        try {
+            // ----------------------------------------------------------------- variables for contract launch --------------------------------------------------------------------------------
+            const { lpEth, totalSupply, lpSupply, maxBuy, minBuy, bundledWallets, instantLaunch } = launch
 
-    try {
-        // ----------------------------------------------------------------- variables for contract launch --------------------------------------------------------------------------------
-        const { lpEth, totalSupply, lpSupply, maxBuy, minBuy, bundledWallets, instantLaunch } = launch
+            const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
+            const _privteKey = decrypt(launch.deployer.key)
+            // feeData
+            // const feeData = await _jsonRpcProvider.getFeeData()
+            const block = await _jsonRpcProvider.getBlock('latest')
 
-        const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
-        const _privteKey = decrypt(launch.deployer.key)
-        // feeData
-        // const feeData = await _jsonRpcProvider.getFeeData()
-        const block = await _jsonRpcProvider.getBlock('latest')
+            // Set the minimum fee (1 gwei) for EIP-1559
+            // const minGas = parseUnits('1', 'gwei')
+            // const baseFee = block.baseFeePerGas || parseUnits('1', 'gwei')
+            // const feeData = {
+            //     gasPrice: minGas,
+            //     maxPriorityFeePerGas: minGas,
+            //     maxFeePerGas: minGas + baseFee
+            // } as FeeData
+            const feeData = await _jsonRpcProvider.getFeeData()
+            // const feeData = {
+            //     gasPrice: BigInt(1500326),
+            //     maxFeePerGas: BigInt(1500652),
+            //     maxPriorityFeePerGas: BigInt(1500000)
+            // } as FeeData
+            console.log('::new FeeData', feeData)
+            // Set your wallet's private key (Use environment variables or .env in real apps)
+            const wallet = new Wallet(_privteKey, _jsonRpcProvider)
+            // Get the nonce
+            const nonce = await wallet.getNonce()
+            // Predict contract address
+            const contractAddress = getCreateAddress({
+                from: wallet.address,
+                nonce: nonce
+            })
+            console.log('contractAddress: ', contractAddress)
+            const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20mins from now
+            // token amount for LP
+            // const tokenAmount = parseEther(localeNumber(Number(totalSupply) * Number(lpSupply) * 0.01))
+            const tokenAmount = parseEther(String(totalSupply))
+            // path
+            const _routerContract = new Contract(CHAIN.UNISWAP_ROUTER_ADDRESS, RouterABI, wallet)
+            const path = [await _routerContract.WETH(), contractAddress]
 
-        // Set the minimum fee (1 gwei) for EIP-1559
-        // const minGas = parseUnits('1', 'gwei')
-        // const baseFee = block.baseFeePerGas || parseUnits('1', 'gwei')
-        // const feeData = {
-        //     gasPrice: minGas,
-        //     maxPriorityFeePerGas: minGas,
-        //     maxFeePerGas: minGas + baseFee
-        // } as FeeData
-        const feeData = await _jsonRpcProvider.getFeeData()
-        // const feeData = {
-        //     gasPrice: BigInt(1500326),
-        //     maxFeePerGas: BigInt(1500652),
-        //     maxPriorityFeePerGas: BigInt(1500000)
-        // } as FeeData
-        console.log('::new FeeData', feeData)
-        // Set your wallet's private key (Use environment variables or .env in real apps)
-        const wallet = new Wallet(_privteKey, _jsonRpcProvider)
-        // Get the nonce
-        const nonce = await wallet.getNonce()
-        // Predict contract address
-        const contractAddress = getCreateAddress({
-            from: wallet.address,
-            nonce: nonce
-        })
-        console.log('contractAddress: ', contractAddress)
-        const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20mins from now
-        // token amount for LP
-        // const tokenAmount = parseEther(localeNumber(Number(totalSupply) * Number(lpSupply) * 0.01))
-        const tokenAmount = parseEther(String(totalSupply))
-        // path
-        const _routerContract = new Contract(CHAIN.UNISWAP_ROUTER_ADDRESS, RouterABI, wallet)
-        const path = [await _routerContract.WETH(), contractAddress]
+            // ----------------------------------------------------------------- transactions for bundle ------------------------------------------------------------------------------------------
+            const deploymentTxData = await makeDeploymentTransaction(chainId, abi, bytecode, nonce, feeData, wallet)
+            const approveTxData = await makeApproveTransaction(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet)
+            const addLpTxData = await makeAddLpTransaction(chainId, contractAddress, tokenAmount, lpEth, deadline, nonce + 2, feeData, wallet)
+            // const bribeTxData = {
+            //     from: wallet.address,
+            //     to: CHAIN.BRIBE_ADDRESS,
+            //     value: CHAIN.BRIBE_AMOUNT,
+            //     maxFeePerGas: feeData.maxFeePerGas,
+            //     maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+            //     gasLimit: 1000000,
+            //     nonce: nonce + 3,
+            //     chainId,
+            //     type: 2
+            // }
 
-        // ----------------------------------------------------------------- transactions for bundle ------------------------------------------------------------------------------------------
-        const deploymentTxData = await makeDeploymentTransaction(chainId, abi, bytecode, nonce, feeData, wallet)
-        const approveTxData = await makeApproveTransaction(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet)
-        const addLpTxData = await makeAddLpTransaction(chainId, contractAddress, tokenAmount, lpEth, deadline, nonce + 2, feeData, wallet)
-        // const bribeTxData = {
-        //     from: wallet.address,
-        //     to: CHAIN.BRIBE_ADDRESS,
-        //     value: CHAIN.BRIBE_AMOUNT,
-        //     maxFeePerGas: feeData.maxFeePerGas,
-        //     maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-        //     gasLimit: 1000000,
-        //     nonce: nonce + 3,
-        //     chainId,
-        //     type: 2
-        // }
+            const bundleWalletsSignedTxs = await makeBundleWalletTransaction(
+                chainId,
+                _routerContract,
+                wallet.address,
+                nonce + 4,
+                bundledWallets,
+                minBuy,
+                maxBuy,
+                _jsonRpcProvider,
+                launch.totalSupply,
+                launch.lpSupply,
+                launch.lpEth,
+                path,
+                deadline,
+                feeData,
+                launch.uniswapV2,
+                launch.feeTier
+            )
+            // setup tx array
+            // const bundleTxs = [deploymentTxData, approveTxData, addLpTxData, bribeTxData]
+            const bundleTxs = [deploymentTxData, approveTxData, addLpTxData]
+            // sign bundle txs batch
+            console.log(bundleTxs.length)
+            const bundleDeployerSignedTxs = await Promise.all(bundleTxs.map(async (b) => await wallet.signTransaction(b)))
+            const bundleSignedTxs = [...bundleDeployerSignedTxs, ...bundleWalletsSignedTxs]
 
-        const bundleWalletsSignedTxs = await makeBundleWalletTransaction(
-            chainId,
-            _routerContract,
-            wallet.address,
-            nonce + 4,
-            bundledWallets,
-            minBuy,
-            maxBuy,
-            _jsonRpcProvider,
-            launch.totalSupply,
-            launch.lpSupply,
-            launch.lpEth,
-            path,
-            deadline,
-            feeData
-        )
-        // setup tx array
-        // const bundleTxs = [deploymentTxData, approveTxData, addLpTxData, bribeTxData]
-        const bundleTxs = [deploymentTxData, approveTxData, addLpTxData]
-        // sign bundle txs batch
-        console.log(bundleTxs.length)
-        const bundleDeployerSignedTxs = await Promise.all(bundleTxs.map(async (b) => await wallet.signTransaction(b)))
-        const bundleSignedTxs = [...bundleDeployerSignedTxs, ...bundleWalletsSignedTxs]
+            return Promise.resolve({ address: contractAddress, bundleSignedTxs })
+        } catch (err) {
+            return Promise.reject(err)
+        }
+    } else if (launch.uniswapV3) {
+        try {
+            // ----------------------------------------------------------------- variables for contract launch --------------------------------------------------------------------------------
+            const { lpEth, totalSupply, lpSupply, maxBuy, minBuy, bundledWallets, instantLaunch, feeTier, lowerPrice, higherPrice } = launch
 
-        return Promise.resolve({ address: contractAddress, bundleSignedTxs })
-    } catch (err) {
-        return Promise.reject(err)
+            const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
+            const _privteKey = decrypt(launch.deployer.key)
+            const block = await _jsonRpcProvider.getBlock('latest')
+            const feeData = await _jsonRpcProvider.getFeeData()
+            console.log('::new FeeData', feeData)
+            // Set your wallet's private key (Use environment variables or .env in real apps)
+            const wallet = new Wallet(_privteKey, _jsonRpcProvider)
+            // Get the nonce
+            const nonce = await wallet.getNonce()
+            // Predict contract address
+            const contractAddress = getCreateAddress({
+                from: wallet.address,
+                nonce: nonce
+            })
+            console.log('contractAddress: ', contractAddress)
+            const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20mins from now
+            // token amount for LP
+            // const tokenAmount = parseEther(localeNumber(Number(totalSupply) * Number(lpSupply) * 0.01))
+            const tokenAmount = parseEther(String(totalSupply))
+            // path
+            const _routerContract = new Contract(CHAIN.UNISWAP_ROUTER_ADDRESS_V3, RouterV3ABI, wallet)
+            const path = [await _routerContract.WETH9(), contractAddress]
+            const routerAddress = CHAINS[CHAIN_ID].POSITION_MANAGER_ADDRESS
+
+            // ----------------------------------------------------------------- transactions for bundle ------------------------------------------------------------------------------------------
+            let bundleTxs = []
+            const deploymentTxData = await makeDeploymentTransaction(chainId, abi, bytecode, nonce, feeData, wallet)
+            const approveTxData = await makeApproveTransactionV3(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet, lpEth, routerAddress, lpSupply, feeTier)
+            const addLpTxData = await makeAddLpTransactionV3(chainId, contractAddress, tokenAmount, lpEth, deadline, nonce + 5, feeData, wallet, lpSupply, lowerPrice, higherPrice, routerAddress, feeTier)
+            bundleTxs.push(deploymentTxData)
+            approveTxData.map((tx: any) => bundleTxs.push(tx))
+            bundleTxs.push(addLpTxData)
+            // const approveTxData = await makeApproveTransaction(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet)
+            // const addLpTxData = await makeAddLpTransaction(chainId, contractAddress, tokenAmount, lpEth, deadline, nonce + 2, feeData, wallet)
+            // const bribeTxData = {
+            //     from: wallet.address,
+            //     to: CHAIN.BRIBE_ADDRESS,
+            //     value: CHAIN.BRIBE_AMOUNT,
+            //     maxFeePerGas: feeData.maxFeePerGas,
+            //     maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+            //     gasLimit: 1000000,
+            //     nonce: nonce + 3,
+            //     chainId,
+            //     type: 2
+            // }
+
+            const bundleWalletsSignedTxs = await makeBundleWalletTransaction(
+                chainId,
+                _routerContract,
+                wallet.address,
+                nonce + 6,
+                bundledWallets,
+                minBuy,
+                maxBuy,
+                _jsonRpcProvider,
+                launch.totalSupply,
+                launch.lpSupply,
+                launch.lpEth,
+                path,
+                deadline,
+                feeData,
+                launch.uniswapV2,
+                launch.feeTier
+            )
+            // setup tx array
+            // const bundleTxs = [deploymentTxData, approveTxData, addLpTxData, bribeTxData]
+            
+            // sign bundle txs batch
+            console.log(bundleTxs.length)
+            const bundleDeployerSignedTxs = await Promise.all(bundleTxs.map(async (b) => await wallet.signTransaction(b)))
+            const bundleSignedTxs = [...bundleDeployerSignedTxs, ...bundleWalletsSignedTxs]
+
+            return Promise.resolve({ address: contractAddress, bundleSignedTxs })
+        } catch (err) {
+            return Promise.reject(err)
+        }
     }
 }
 /**
@@ -375,60 +462,124 @@ const launchWithAutoLP = async (
     const CHAIN = CHAINS[chainId]
 
     console.log('::chain info:', CHAIN)
-    try {
-        // ----------------------------------------------------------------- variables for contract launch --------------------------------------------------------------------------------
-        const { lpEth, totalSupply, lpSupply, maxBuy, minBuy, bundledWallets } = launch
-        const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
-        const _privteKey = decrypt(launch.deployer.key)
-        // feeData
-        // const feeData = await _jsonRpcProvider.getFeeData()
-        const block = await _jsonRpcProvider.getBlock('latest')
-
-        // Set the minimum fee (1 gwei) for EIP-1559
-        const minGas = parseUnits('1', 'gwei')
-        const baseFee = block.baseFeePerGas || parseUnits('1', 'gwei')
-        // const feeData = {
-        //     gasPrice: minGas,
-        //     maxPriorityFeePerGas: minGas,
-        //     maxFeePerGas: minGas + baseFee
-        // } as FeeData
-        const feeData = await _jsonRpcProvider.getFeeData()
-        console.log('::new FeeData', feeData)
-        // Set your wallet's private key (Use environment variables or .env in real apps)
-        const wallet = new Wallet(_privteKey, _jsonRpcProvider)
-        // Get the nonce
-        const nonce = await wallet.getNonce()
-        // Predict contract address
-        const contractAddress = getCreateAddress({
-            from: wallet.address,
-            nonce: nonce
-        })
-        console.log('contractAddress: ', contractAddress)
-        const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20mins from now
-        // token amount for LP
-        const tokenAmount = parseEther((Number(totalSupply) * Number(lpSupply) * 0.01).toString())
-        // ----------------------------------------------------------------- transactions for bundle ------------------------------------------------------------------------------------------
-        const deploymentTxData = await makeDeploymentTransaction(chainId, abi, bytecode, nonce, feeData, wallet)
-        const approveTxData = await makeApproveTransaction(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet)
-        const addLpTxData = await makeAddLpTransaction(chainId, contractAddress, tokenAmount, lpEth, deadline, nonce + 2, feeData, wallet)
-        const bribeTxData = {
-            from: wallet.address,
-            to: CHAIN.BRIBE_ADDRESS,
-            value: CHAIN.BRIBE_AMOUNT,
-            maxFeePerGas: feeData.maxFeePerGas,
-            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-            gasLimit: 1000000,
-            nonce: nonce + 3,
-            chainId,
-            type: 2
+    if (launch.uniswapV2) {
+        try {
+            // ----------------------------------------------------------------- variables for contract launch --------------------------------------------------------------------------------
+            const { lpEth, totalSupply, lpSupply, maxBuy, minBuy, bundledWallets } = launch
+            const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
+            const _privteKey = decrypt(launch.deployer.key)
+            // feeData
+            // const feeData = await _jsonRpcProvider.getFeeData()
+            const block = await _jsonRpcProvider.getBlock('latest')
+    
+            // Set the minimum fee (1 gwei) for EIP-1559
+            const minGas = parseUnits('1', 'gwei')
+            const baseFee = block.baseFeePerGas || parseUnits('1', 'gwei')
+            // const feeData = {
+            //     gasPrice: minGas,
+            //     maxPriorityFeePerGas: minGas,
+            //     maxFeePerGas: minGas + baseFee
+            // } as FeeData
+            const feeData = await _jsonRpcProvider.getFeeData()
+            console.log('::new FeeData', feeData)
+            // Set your wallet's private key (Use environment variables or .env in real apps)
+            const wallet = new Wallet(_privteKey, _jsonRpcProvider)
+            // Get the nonce
+            const nonce = await wallet.getNonce()
+            // Predict contract address
+            const contractAddress = getCreateAddress({
+                from: wallet.address,
+                nonce: nonce
+            })
+            console.log('contractAddress: ', contractAddress)
+            const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20mins from now
+            // token amount for LP
+            const tokenAmount = parseEther((Number(totalSupply) * Number(lpSupply) * 0.01).toString())
+            // ----------------------------------------------------------------- transactions for bundle ------------------------------------------------------------------------------------------
+            const deploymentTxData = await makeDeploymentTransaction(chainId, abi, bytecode, nonce, feeData, wallet)
+            const approveTxData = await makeApproveTransaction(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet)
+            const addLpTxData = await makeAddLpTransaction(chainId, contractAddress, tokenAmount, lpEth, deadline, nonce + 2, feeData, wallet)
+            const bribeTxData = {
+                from: wallet.address,
+                to: CHAIN.BRIBE_ADDRESS,
+                value: CHAIN.BRIBE_AMOUNT,
+                maxFeePerGas: feeData.maxFeePerGas,
+                maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+                gasLimit: 1000000,
+                nonce: nonce + 3,
+                chainId,
+                type: 2
+            }
+            // setup tx array
+            const bundleTxs = [deploymentTxData, approveTxData, addLpTxData, bribeTxData]
+            const bundleDeployerSignedTxs = await Promise.all(bundleTxs.map(async (b) => await wallet.signTransaction(b)))
+            const bundleSignedTxs = [...bundleDeployerSignedTxs]
+            return Promise.resolve({ address: contractAddress, bundleSignedTxs })
+        } catch (err) {
+            return Promise.reject(err)
         }
-        // setup tx array
-        const bundleTxs = [deploymentTxData, approveTxData, addLpTxData, bribeTxData]
-        const bundleDeployerSignedTxs = await Promise.all(bundleTxs.map(async (b) => await wallet.signTransaction(b)))
-        const bundleSignedTxs = [...bundleDeployerSignedTxs]
-        return Promise.resolve({ address: contractAddress, bundleSignedTxs })
-    } catch (err) {
-        return Promise.reject(err)
+    } else if (launch.uniswapV3) {
+        try {
+            // ----------------------------------------------------------------- variables for contract launch --------------------------------------------------------------------------------
+            const { lpEth, totalSupply, lpSupply, maxBuy, minBuy, bundledWallets, instantLaunch, feeTier, lowerPrice, higherPrice } = launch
+
+            const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
+            const _privteKey = decrypt(launch.deployer.key)
+            const block = await _jsonRpcProvider.getBlock('latest')
+            const feeData = await _jsonRpcProvider.getFeeData()
+            console.log('::new FeeData', feeData)
+            // Set your wallet's private key (Use environment variables or .env in real apps)
+            const wallet = new Wallet(_privteKey, _jsonRpcProvider)
+            // Get the nonce
+            const nonce = await wallet.getNonce()
+            // Predict contract address
+            const contractAddress = getCreateAddress({
+                from: wallet.address,
+                nonce: nonce
+            })
+            console.log('contractAddress: ', contractAddress)
+            const deadline = Math.floor(Date.now() / 1000) + 60 * 20 // 20mins from now
+            // token amount for LP
+            // const tokenAmount = parseEther(localeNumber(Number(totalSupply) * Number(lpSupply) * 0.01))
+            const tokenAmount = parseEther(String(totalSupply))
+            // path
+            const _routerContract = new Contract(CHAIN.UNISWAP_ROUTER_ADDRESS_V3, RouterV3ABI, wallet)
+            const path = [await _routerContract.WETH9(), contractAddress]
+            const routerAddress = CHAINS[CHAIN_ID].POSITION_MANAGER_ADDRESS
+
+            // ----------------------------------------------------------------- transactions for bundle ------------------------------------------------------------------------------------------
+            let bundleTxs = []
+            const deploymentTxData = await makeDeploymentTransaction(chainId, abi, bytecode, nonce, feeData, wallet)
+            const approveTxData = await makeApproveTransactionV3(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet, lpEth, routerAddress, lpSupply, feeTier)
+            const addLpTxData = await makeAddLpTransactionV3(chainId, contractAddress, tokenAmount, lpEth, deadline, nonce + 5, feeData, wallet, lpSupply, lowerPrice, higherPrice, routerAddress, feeTier)
+            bundleTxs.push(deploymentTxData)
+            approveTxData.map((tx: any) => bundleTxs.push(tx))
+            bundleTxs.push(addLpTxData)
+            // const approveTxData = await makeApproveTransaction(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet)
+            // const addLpTxData = await makeAddLpTransaction(chainId, contractAddress, tokenAmount, lpEth, deadline, nonce + 2, feeData, wallet)
+            // const bribeTxData = {
+            //     from: wallet.address,
+            //     to: CHAIN.BRIBE_ADDRESS,
+            //     value: CHAIN.BRIBE_AMOUNT,
+            //     maxFeePerGas: feeData.maxFeePerGas,
+            //     maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+            //     gasLimit: 1000000,
+            //     nonce: nonce + 3,
+            //     chainId,
+            //     type: 2
+            // }
+            // setup tx array
+            // const bundleTxs = [deploymentTxData, approveTxData, addLpTxData, bribeTxData]
+            
+            // sign bundle txs batch
+            console.log(bundleTxs.length)
+            const bundleDeployerSignedTxs = await Promise.all(bundleTxs.map(async (b) => await wallet.signTransaction(b)))
+            const bundleSignedTxs = [...bundleDeployerSignedTxs]
+
+            return Promise.resolve({ address: contractAddress, bundleSignedTxs })
+        } catch (err) {
+            return Promise.reject(err)
+        }
     }
 }
 
@@ -459,23 +610,24 @@ export const tokenLaunch = async (ctx: any, id: string) => {
             maxWallet: launch.maxWallet,
             sellFee: launch.sellFee,
             buyFee: launch.buyFee,
-            liquidityFee: launch.liquidityFee,
-            swapThreshold: launch.swapThreshold,
             instantLaunch: launch.instantLaunch,
             feeWallet: launch.feeWallet == 'Deployer Wallet' ? launch.deployer.address : launch.feeWallet,
             website: launch.website,
             twitter: launch.twitter,
             telegram: launch.telegram,
-            custom: launch.custom
+            custom: launch.custom,
+            uniswapV2: launch.uniswapV2
         })) as any
-
+        // console.log("abi: " + abi)
+        // console.log("sourceCode: " + sourceCode)
+        console.log('--------------------------testing compiling contract----------------------------------')
         let contractAddress = ''
 
         if (launch.instantLaunch) {
             const provider = new JsonRpcProvider(CHAINS[CHAIN_ID].RPC)
             let requiredEthPerWallet = launch.maxBuy * launch.lpEth * 0.01
-            const _privteKey = decrypt(launch.bundledWallets[0]?.key)
-            const wallet = new Wallet(_privteKey, provider)
+            const _privateKey = decrypt(launch.bundledWallets[0]?.key)
+            const wallet = new Wallet(_privateKey, provider)
             const nonce = await wallet.getNonce()
             // predict contract address
             contractAddress = getCreateAddress({
@@ -537,56 +689,56 @@ export const tokenLaunch = async (ctx: any, id: string) => {
         //if launch is instant or autoLP
         if (launch.instantLaunch || launch.autoLP) {
             const { bundleSignedTxs, address } = launch.instantLaunch ? await launchWithInstant(chainId, launch, abi, bytecode) : await launchWithAutoLP(chainId, launch, abi, bytecode)
-            // await Promise.all(bundleSignedTxs.map((b) => executeSimulationTx(chainId, b)))
+            await Promise.all(bundleSignedTxs.map((b) => executeSimulationTx(chainId, b)))
             //////////////////////////////////////// sending bundle using blockrazor ///////////////////////////////////////////////
-            const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
-            const blockNumber: number = await _jsonRpcProvider.getBlockNumber()
-            const nextBlock = blockNumber
-            const requestData = {
-                jsonrpc: '2.0',
-                id: '1',
-                method: 'eth_sendMevBundle',
-                params: [
-                    {
-                        txs: bundleSignedTxs, // List of signed raw transactions
-                        maxBlockNumber: nextBlock + 100 // The maximum block number for the bundle to be valid, with the default set to the current block number + 100
-                        // "minTimestamp":1710229370,   // Expected minimum Unix timestamp (in seconds) for the bundle to be valid
-                        // "maxTimestamp":1710829390,   // Expected maximum Unix timestamp (in seconds) for the bundle to be valid
-                    }
-                ]
-            }
-            const config = {
-                headers: {
-                    'Content-Type': 'application/json'
-                    // Authorization: AUTH_HEADER
-                }
-            }
-            try {
-                console.log('::sending bundles...')
-                const response = await axios.post(`https://eth.blockrazor.xyz/${process.env.BLOCK_API_KEY}`, requestData, config)
-                console.log('::sent...')
-                console.log('response.data: ', response.data)
-                if (response.data?.error?.message) {
-                    let text = `⚠ ${response.data?.error?.message}\n\n`
-                    await ctx.reply(text, {
-                        parse_mode: 'HTML',
-                        reply_markup: {
-                            one_time_keyboard: true,
-                            resize_keyboard: true,
-                            inline_keyboard: [
-                                [
-                                    { text: '← Back', callback_data: `launch_preview_${id}` },
-                                    { text: 'Try Again', callback_data: `launch_token_${id}` }
-                                ]
-                            ]
-                        }
-                    })
-                    return
-                }
-            } catch (error) {
-                console.error('Error in sending bundle transaction:')
-                throw 'Error in sending bundle transaction. Please try again and contact to support team'
-            }
+            // const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
+            // const blockNumber: number = await _jsonRpcProvider.getBlockNumber()
+            // const nextBlock = blockNumber
+            // const requestData = {
+            //     jsonrpc: '2.0',
+            //     id: '1',
+            //     method: 'eth_sendMevBundle',
+            //     params: [
+            //         {
+            //             txs: bundleSignedTxs, // List of signed raw transactions
+            //             maxBlockNumber: nextBlock + 100 // The maximum block number for the bundle to be valid, with the default set to the current block number + 100
+            //             // "minTimestamp":1710229370,   // Expected minimum Unix timestamp (in seconds) for the bundle to be valid
+            //             // "maxTimestamp":1710829390,   // Expected maximum Unix timestamp (in seconds) for the bundle to be valid
+            //         }
+            //     ]
+            // }
+            // const config = {
+            //     headers: {
+            //         'Content-Type': 'application/json'
+            //         // Authorization: AUTH_HEADER
+            //     }
+            // }
+            // try {
+            //     console.log('::sending bundles...')
+            //     const response = await axios.post(`https://eth.blockrazor.xyz/${process.env.BLOCK_API_KEY}`, requestData, config)
+            //     console.log('::sent...')
+            //     console.log('response.data: ', response.data)
+            //     if (response.data?.error?.message) {
+            //         let text = `⚠ Failed to run action due to some issues\n${response.data?.error?.message}\n\nPlease check and try again.`
+            //         await ctx.reply(text, {
+            //             parse_mode: 'HTML',
+            //             reply_markup: {
+            //                 one_time_keyboard: true,
+            //                 resize_keyboard: true,
+            //                 inline_keyboard: [
+            //                     [
+            //                         { text: '← Back', callback_data: `launch_preview_${id}` },
+            //                         { text: 'Try Again', callback_data: `launch_token_${id}` }
+            //                     ]
+            //                 ]
+            //             }
+            //         })
+            //         return
+            //     }
+            // } catch (error) {
+            //     console.error('Error in sending bundle transaction:')
+            //     throw 'Error in sending bundle transaction. Please try again and contact to support team'
+            // }
             ////////////////////////////////////////// end sending bundle using blockrazor ///////////////////////////////////////////////
 
             contractAddress = address as string
@@ -619,6 +771,11 @@ export const tokenLaunch = async (ctx: any, id: string) => {
                 bundledWallets: launch.bundledWallets,
                 minBuy: launch.minBuy,
                 maxBuy: launch.maxBuy,
+                uniswapV2: launch.uniswapV2,
+                uniswapV3: launch.uniswapV3,
+                feeTier: launch.feeTier,
+                lowerPrice: launch.lowerPrice,
+                higherPrice: launch.higherPrice,
                 // contract data
                 address: address,
                 verified: false,
@@ -648,8 +805,6 @@ export const tokenLaunch = async (ctx: any, id: string) => {
                 feeWallet: launch.feeWallet,
                 buyFee: launch.buyFee,
                 sellFee: launch.sellFee,
-                liquidityFee: launch.liquidityFee,
-                swapThreshold: launch.swapThreshold,
                 website: launch.website,
                 twitter: launch.twitter,
                 telegram: launch.telegram,
@@ -658,6 +813,11 @@ export const tokenLaunch = async (ctx: any, id: string) => {
                 bundledWallets: launch.bundledWallets,
                 minBuy: launch.minBuy,
                 maxBuy: launch.maxBuy,
+                uniswapV2: launch.uniswapV2,
+                uniswapV3: launch.uniswapV3,
+                feeTier: launch.feeTier,
+                lowerPrice: launch.lowerPrice,
+                higherPrice: launch.higherPrice,
                 // contract data
                 address: address,
                 verified: false,

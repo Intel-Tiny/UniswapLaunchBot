@@ -1,6 +1,6 @@
 import Launches from '@/models/Launch'
 import { launchVariablesMenu } from '@/bot/controllers/launcher/launchVariables/index'
-import { deleteMessage, deleteOldMessages, checkExit } from '@/share/utils'
+import { deleteMessage, deleteOldMessages, checkExit, saveOldMsgIds } from '@/share/utils'
 
 export const enterScene = async (ctx: any) => {
     deleteOldMessages(ctx)
@@ -13,7 +13,8 @@ export const enterScene = async (ctx: any) => {
             resize_keyboard: true
         }
     })
-    ctx.session.message_id = message_id
+    saveOldMsgIds(ctx, message_id)
+
 }
 
 export const textHandler = async (ctx: any) => {
@@ -21,7 +22,7 @@ export const textHandler = async (ctx: any) => {
     if (check) return
     const { id } = ctx.scene.state
 
-    deleteMessage(ctx, ctx.session.message_id)
+    deleteOldMessages(ctx)
     deleteMessage(ctx, ctx.message.message_id)
 
     id.length > 1

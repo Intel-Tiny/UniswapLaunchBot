@@ -40,8 +40,12 @@ export const launch_settings = async (ctx: any, id: string = '') => {
                 ? [
                       [{ text: '===== LAUNCH SETTINGS =====', callback_data: '#' }],
                       [
-                          { text: `${launch.autoLP ? '🟢' : '🔴'} Auto LP`, callback_data: `autoLP_${launch.id}` },
-                          { text: `${launch.instantLaunch ? '🟢' : '🔴'} Instant Launch`, callback_data: `instantLaunch_${launch.id}` }
+                          { text: `${launch.uniswapV2 ? '🟢' : '🔴'} Uniswap V2`, callback_data: `uniswapV2_${id}` },
+                          { text: `${launch.uniswapV3 ? '🟢' : '🔴'} Uniswap V3`, callback_data: `uniswapV3_${id}` }
+                      ],
+                      [
+                          { text: `${launch.autoLP ? '🟢' : '🔴'} Auto LP`, callback_data: `autoLP_${id}` },
+                          { text: `${launch.instantLaunch ? '🟢' : '🔴'} Instant Launch`, callback_data: `instantLaunch_${id}` }
                       ],
                       [{ text: '======', callback_data: '#' }],
                       [{ text: 'Next →', callback_data: `launch_tokenomics_${launch.id}` }],
@@ -52,6 +56,10 @@ export const launch_settings = async (ctx: any, id: string = '') => {
                   ]
                 : [
                       [{ text: '===== LAUNCH SETTINGS =====', callback_data: '#' }],
+                      [
+                          { text: `${launch.uniswapV2 ? '🟢' : '🔴'} Uniswap V2`, callback_data: `uniswapV2_` },
+                          { text: `${launch.uniswapV3 ? '🟢' : '🔴'} Uniswap V3`, callback_data: `uniswapV3_` }
+                      ],
                       [
                           { text: `${launch.autoLP ? '🟢' : '🔴'} Auto LP`, callback_data: `autoLP_` },
                           { text: `${launch.instantLaunch ? '🟢' : '🔴'} Instant Launch`, callback_data: `instantLaunch_` }

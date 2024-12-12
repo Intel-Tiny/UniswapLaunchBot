@@ -16,6 +16,8 @@ export const enterScene = async (ctx: any) => {
             is_disabled: true
         }
     })
+    saveOldMsgIds(ctx, message_id)
+
     
 }
 
@@ -26,6 +28,8 @@ export const textHandler = async (ctx: any) => {
     const { id } = ctx.scene.state
 
     deleteOldMessages(ctx)
+    deleteMessage(ctx, ctx.message.message_id)
+
 
     id.length > 1 ? await Launches.findOneAndUpdate({ _id: id }, { twitter: ctx.message.text }, { new: true }) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, { twitter: ctx.message.text }, { new: true, upsert: true })
     await ctx.scene.leave()

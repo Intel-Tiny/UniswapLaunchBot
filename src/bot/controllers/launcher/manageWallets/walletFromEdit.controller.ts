@@ -1,6 +1,6 @@
 import { isAddress } from 'ethers'
 import { sendTokenDeployer, sendTokenWallet } from '.'
-import { deleteMessage, deleteOldMessages, showNotification } from '@/share/utils'
+import { deleteMessage, deleteOldMessages, showNotification, saveOldMsgIds } from '@/share/utils'
 import { checkExit } from '@/share/utils'
 import Tokens from '@/models/Tokens'
 
@@ -22,7 +22,7 @@ export const enterScene = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
     }
 }
 
@@ -32,7 +32,7 @@ export const textHandler = async (ctx: any) => {
     const _value = ctx.message.text
     const { id } = ctx.scene.state
 
-    deleteMessage(ctx, ctx.session.message_id)
+    deleteOldMessages(ctx)
     deleteMessage(ctx, ctx.message.message_id)
 
     try {
@@ -58,7 +58,7 @@ export const textHandler = async (ctx: any) => {
                 resize_keyboard: true
             }
         })
-        ctx.session.message_id = message_id
+        saveOldMsgIds(ctx, message_id)
         showNotification(ctx, String(err))
     }
 }
