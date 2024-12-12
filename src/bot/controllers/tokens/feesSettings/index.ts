@@ -111,6 +111,7 @@ export const updateFees = async (ctx: any, id: string) => {
     const CHAIN = CHAINS[CHAIN_ID]
     try {
         console.log('update fees')
+        showMessage(ctx, '⏰ Updating Fees...')
 
         const jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
         const privteKey = decrypt(deployer.key)
@@ -126,9 +127,8 @@ export const updateFees = async (ctx: any, id: string) => {
                 }
             })
         } else {
-            showMessage(ctx, '⏰ Updating Fees...')
             const feeData = await jsonRpcProvider.getFeeData()
-            const tx = await tokenContract.setFees(Math.ceil(buyFee), Math.ceil(sellFee), Math.ceil(liquidityFee), {
+            const tx = await tokenContract.setFees(Math.ceil(buyFee), Math.ceil(sellFee), {
                 maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
                 maxFeePerGas: feeData.maxFeePerGas,
                 gasLimit: 3000000

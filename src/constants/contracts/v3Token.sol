@@ -329,7 +329,7 @@ contract CONTRACT_SYMBOL is ERC20, Ownable {
         swapEnabled = true;
     }
 
-    function setFees(uint256 newBuyFee, uint256 newSellFee, uint256 newLiquidityFee) external onlyOwner {
+    function setFees(uint256 newBuyFee, uint256 newSellFee) external onlyOwner {
         buyTax = newBuyFee;
         sellTax = newSellFee;
     }

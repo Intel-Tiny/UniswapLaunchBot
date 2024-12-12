@@ -12,7 +12,9 @@ export const launchTokenomicsMenu = async (ctx: any, id: string = '') => {
         `<b>LP Tokens </b> –  The amount of your token that you would like to deposit into the Initial Liquidity Pool.\n` +
         `<b>LP ETH  </b> – The amount of ETH that will be added to the Initial Liquidity Pool.\n` +
         `<b>Contract Funds </b> – Tokens that will be minted directly into the contract's wallet. These will be used for tax.\n` +
-        `<b>Anti-Drain </b> – A system that attempts to prevent the contract funds from being drained by malicious bots.\n`
+        `<b>Fee Tier </b> –  Percentage of the trade value that liquidity providers earn as a fee for providing liquidity.\n` +
+        `<b>Lower Price </b> – Price level at the lower tick of a liquidity position, expressed as a percentage of the current price.\n` +
+        `<b>Higher Price </b> – Price level at the upper tick of a liquidity position, also expressed as a percentage of the current price.\n` 
 
     const settings = {
         parse_mode: 'HTML',

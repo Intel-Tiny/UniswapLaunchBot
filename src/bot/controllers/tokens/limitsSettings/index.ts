@@ -132,6 +132,7 @@ export const disableAllLimits = async (ctx: any, id: string) => {
     const CHAIN = CHAINS[CHAIN_ID]
 
     try {
+        showMessage(ctx, '⏰ Disabling All Limits...')
         const jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
         const privteKey = decrypt(token.deployer.key)
         const wallet = new Wallet(privteKey, jsonRpcProvider)
@@ -146,7 +147,7 @@ export const disableAllLimits = async (ctx: any, id: string) => {
                 }
             })
         } else {
-            showMessage(ctx, '⏰ Disabling All Limits...')
+            
             const feeData = await jsonRpcProvider.getFeeData()
             const tx = await tokenContract.removeLimits({
                 maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
@@ -177,6 +178,7 @@ export const disableHoldingLimits = async (ctx: any, id: string) => {
     const CHAIN = CHAINS[CHAIN_ID]
 
     try {
+        showMessage(ctx, '⏰ Disabling Holding Limits...')
         const jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
         const privteKey = decrypt(token.deployer.key)
         const wallet = new Wallet(privteKey, jsonRpcProvider)
@@ -191,7 +193,6 @@ export const disableHoldingLimits = async (ctx: any, id: string) => {
                 }
             })
         } else {
-            showMessage(ctx, '⏰ Disabling Holding Limits...')
             const feeData = await jsonRpcProvider.getFeeData()
             const tx = await tokenContract.disableWalletLimit({
                 maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
@@ -223,6 +224,7 @@ export const disableSwapLimits = async (ctx: any, id: string) => {
     const CHAIN = CHAINS[CHAIN_ID]
 
     try {
+        showMessage(ctx, '⏰ Disabling Swap Limits...')
         const jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
         const privteKey = decrypt(token.deployer.key)
         const wallet = new Wallet(privteKey, jsonRpcProvider)
@@ -237,7 +239,6 @@ export const disableSwapLimits = async (ctx: any, id: string) => {
                 }
             })
         } else {
-            showMessage(ctx, '⏰ Disabling Swap Limits...')
             const feeData = await jsonRpcProvider.getFeeData()
             const tx = await tokenContract.removeMaxSwap({
                 maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,

@@ -100,8 +100,7 @@
     {
         "inputs": [
             { "internalType": "uint256", "name": "newBuyFee", "type": "uint256" },
-            { "internalType": "uint256", "name": "newSellFee", "type": "uint256" },
-            { "internalType": "uint256", "name": "newLiquidityFee", "type": "uint256" }
+            { "internalType": "uint256", "name": "newSellFee", "type": "uint256" }
         ],
         "name": "setFees",
         "outputs": [],

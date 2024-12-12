@@ -33,6 +33,8 @@ export const launch_settings = async (ctx: any, id: string = '') => {
         const text =
             `<b>Launch Creation in Progress…</b>\n` +
             `Choose any optional features you would like enabled with this launch.\n\n` +
+            `<b>Uniswap V2 </b> – You will add liquidity on Uniswap V2.\n` +
+            `<b>Uniswap V3 </b> – You will add liquidity on Uniswap V3.\n` +
             `<b>Instant Launch </b> – From Deployment to Liquidity to Trading, enable it all in one to perform a true Stealth Launch.\n` +
             `<b>Automatic LP </b> – During Deployment, immediately Initialize the Liquidity Pool without Enabling Trading.\n`
         const inlineKeyboard =

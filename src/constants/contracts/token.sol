@@ -332,8 +332,7 @@ contract CONTRACT_SYMBOL is ERC20, Ownable {
         swapEnabled = true;
     }
 
-    function setFees(uint256 newBuyFee, uint256 newSellFee, uint256 newLiquidityFee) external onlyOwner {
-        // require(newBuyFee <= CONTRACT_BUY_FEE && newSellFee <= CONTRACT_SELL_FEE && newLiquidityFee <= CONTRACT_LP_FEE, 'Attempting to set fee higher than initial fee.');
+    function setFees(uint256 newBuyFee, uint256 newSellFee) external onlyOwner {
         buyTax = newBuyFee;
         sellTax = newSellFee;
     }

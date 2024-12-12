@@ -438,6 +438,7 @@ export const capitalizeFirstLetter = (text: string) => {
  * @param back
  */
 export const catchContractErrorException = async (ctx: any, err: any, chain: CHAIN, address: string, back: string, msg: string) => {
+    console.log(err)
     if (err && typeof err === 'object' && 'code' in err) {
         let hash = `${chain.explorer}/address/${address}`
         if ('receipt' in err && err?.receipt?.hash) {
