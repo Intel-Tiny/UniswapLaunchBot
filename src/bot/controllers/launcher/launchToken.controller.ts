@@ -422,6 +422,7 @@ const launchWithNone = async (
     bytecode: any
 ) => {
     const CHAIN = CHAINS[chainId]
+    
     console.log('::chain info:', CHAIN)
     try {
         const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
@@ -431,6 +432,7 @@ const launchWithNone = async (
         const factory = new ContractFactory(abi, bytecode, wallet)
         // Get the nonce
         const nonce = await wallet.getNonce()
+        console.log("factory: ", factory)
         // Deploy the contract
         const contract = await factory.deploy()
         // Wait for the deployment to be mined
@@ -784,6 +786,7 @@ export const tokenLaunch = async (ctx: any, id: string) => {
                 sourceCode: sourceCode
             }).save()
         } else {
+            ctx.reply(`🕐 Deploying contract...`)
             const { address } = await launchWithNone(chainId, launch, abi, bytecode)
             contractAddress = address as string
             console.log('::ended::::')
