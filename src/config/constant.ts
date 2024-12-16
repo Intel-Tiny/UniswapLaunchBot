@@ -24,7 +24,7 @@ export const CHAINS: Record<number, CHAIN> = {
         explorer: 'https://etherscan.io',
         RPC: `https://lb.drpc.org/ogrpc?network=ethereum&dkey=${process.env.DRPC_KEY}`,
         ETHERSCAN_API_KEY: 'QJ4UTD1RDZ64DP9G5NMVTCU88H8VYYQQJX',
-        ETHERSCAN_API_URL: 'https://etherscan.io/',
+        ETHERSCAN_API_URL: 'https://api.etherscan.io/',
         UNISWAP_ROUTER_ADDRESS: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
         UNISWAP_FACTORY_ADDRESS_V3: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
         UNISWAP_ROUTER_ADDRESS_V3: '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
