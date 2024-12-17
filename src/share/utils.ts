@@ -12,6 +12,8 @@ import { menu as tokensMenu } from '@/bot/controllers/tokens'
 import { CHAIN } from '@/types'
 import { Markup } from 'telegraf'
 import { JsonRpcProvider, Wallet } from 'ethers'
+import univ3prices from "@thanpolas/univ3prices";
+
 
 /**
  * delay specific time Promise
@@ -513,3 +515,10 @@ export const getPriceToTick = (price: number) => {
     console.log('Math.log(1.0001): ', Math.log(1.0001))
     return Math.floor(Math.log(price) / Math.log(1.0001))
 }
+export const getPriceAndTickFromValues = (_weth0: boolean, _tokens: number, _weth: number) => {
+    const _tempPrice = Math.sqrt(2 ** 192 / (!_weth0 ? _tokens : _weth) * (_weth0 ? _tokens : _weth))
+    let _tick = univ3prices.tickMath.getTickAtSqrtRatio(_tempPrice)
+    _tick = _tick - (_tick % 200)
+    const _price = BigInt((univ3prices.tickMath.getSqrtRatioAtTick(_tick)).toString());
+    return {_tick, _price}
+  }

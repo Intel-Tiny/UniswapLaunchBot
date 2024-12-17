@@ -7,7 +7,7 @@ import PositionManagerABI from '@/constants/ABI/positionManagerABI.json'
 import WethABI from '@/constants/ABI/wethABI.json'
 import { Markup } from 'telegraf'
 import ERC20ABI from '@/constants/ABI/ERC20.json'
-import { sqrtPriceX96, getPriceToTick } from '@/share/utils'
+import { sqrtPriceX96, getPriceToTick, getPriceAndTickFromValues } from '@/share/utils'
 
 /**
  * menu for liquidity settings
@@ -284,14 +284,14 @@ export const addLiquidity = async (ctx: any, id: string) => {
             const wallet = new Wallet(privteKey, jsonRpcProvider)
 
             // eth balance testing
-            await ctx.reply(`⏰ <code>ETH</code> balanace checking...`, { parse_mode: 'HTML' })
-            const _ethBalance = await jsonRpcProvider.getBalance(token.deployer.address) // balance is in wei
-            const ethBalance = formatEther(_ethBalance) // Convert to ETH
+            // await ctx.reply(`⏰ <code>ETH</code> balanace checking...`, { parse_mode: 'HTML' })
+            // const _ethBalance = await jsonRpcProvider.getBalance(token.deployer.address) // balance is in wei
+            // const ethBalance = formatEther(_ethBalance) // Convert to ETH
 
-            if (Number(token.lpEth) > Number(ethBalance)) {
-                ctx.reply(`⚠ Deployer wallet has <code>${formatNumber(ethBalance)}ETH</code>,  but required <code>${formatNumber(token.lpEth)}ETH</code>.\n<code>${token.deployer.address}</code>`, { parse_mode: 'HTML' })
-                return
-            }
+            // if (Number(token.lpEth) > Number(ethBalance)) {
+            //     ctx.reply(`⚠ Deployer wallet has <code>${formatNumber(ethBalance)}ETH</code>,  but required <code>${formatNumber(token.lpEth)}ETH</code>.\n<code>${token.deployer.address}</code>`, { parse_mode: 'HTML' })
+            //     return
+            // }
 
             const tokenContract = new Contract(token.address, token.abi, wallet)
             const routerAddress = CHAINS[CHAIN_ID].POSITION_MANAGER_ADDRESS
@@ -308,60 +308,40 @@ export const addLiquidity = async (ctx: any, id: string) => {
                 )
                 return
             }
-            const wethAddress = process.env.WETH_ADDRESS
-            const wethContract = new Contract(wethAddress, WethABI, wallet)
-            const wethBalance = await wethContract.balanceOf(wallet.address)
-            if (Number(formatEther(wethBalance)) < Number(token.lpEth)) {
-                const depositEthTx = await wethContract.deposit({ value: parseEther(String(token.lpEth)) })
-                await depositEthTx.wait()
-            }
+            const _weth = process.env.WETH_ADDRESS
+            const _weth0 = _weth < token.address
+            const token_init_amount = Number(formatEther(tokenAmount)) * token.lpSupply * 0.01
+            console.log("token_init_amount: ", token_init_amount)
+            console.log("token.initMC: ", token.initMC)
+            const res = getPriceAndTickFromValues(_weth0, token_init_amount, token.initMC)
+            const tickLower = res._tick
+            const res1 = getPriceAndTickFromValues(_weth0, token_init_amount, token.upperMC)
+            const tickUpper = res1._tick
+            const routerContract = new Contract(routerAddress, PositionManagerABI, wallet)
             // approve for lp adding
             await ctx.reply(`⏰ Approving <code>${token.symbol}</code> for adding liquidity...`, { parse_mode: 'HTML' })
             console.log('tokenAmount: ' + tokenAmount)
             const approveTx = await tokenContract.approve(routerAddress, tokenAmount)
             await approveTx.wait()
             console.log('approved token amount')
-            const wethApproveTx = await wethContract.approve(routerAddress, _ethBalance)
-            await wethApproveTx.wait()
-            console.log('::approved weth:')
             // initialize pool
             await ctx.reply(`⏰ Initializing pool ...`, { parse_mode: 'HTML' })
-            const routerContract = new Contract(CHAIN.POSITION_MANAGER_ADDRESS, PositionManagerABI, wallet)
-            const currentPrice = Number(token.totalSupply * token.lpSupply * 0.01) / Number(token.lpEth)
-            console.log('current price: ', currentPrice)
-            const sqrtPrice = sqrtPriceX96(currentPrice)
-            console.log('token address -> ', token.address, ' weth address -> ', wethAddress, ' feeTier -> ', BigInt(token.feeTier), ' sqrtPrice -> ', sqrtPrice)
-            let token0: any, token1: any
-            if (wethAddress.toLowerCase() < token.address.toLowerCase()) {
-                token0 = wethAddress
-                token1 = token.address
-            } else {
-                token0 = token.address
-                token1 = wethAddress
-            }
-            const initializePoolTxData = await routerContract.createAndInitializePoolIfNecessary(token0, token1, BigInt(token.feeTier), sqrtPrice)
+            const sqrtPrice = res._price
+            console.log(' sqrtPrice -> ', sqrtPrice)
+            const initializePoolTxData = await routerContract.createAndInitializePoolIfNecessary(_weth0 ? _weth : token.address, !_weth0 ? _weth : token.address, BigInt(token.feeTier), sqrtPrice)
             await initializePoolTxData.wait()
             console.log('::initialized pool:', initializePoolTxData.hash)
             // app LP
             await ctx.reply(`⏰ Adding Liquidity for <code>${token.symbol}</code>...`, { parse_mode: 'HTML' })
-            const tickLower = getPriceToTick((currentPrice * token.lowerPrice) / 100)
-            const tickUpper = getPriceToTick((currentPrice * token.higherPrice) / 100)
             console.log('tickLower: ', tickLower, ' tickUpper: ', tickUpper)
-            let tempTickLower = Math.floor(tickLower / 200) * 200
-            let tempTickUpper = Math.floor(tickUpper / 200) * 200
-            console.log('tempTickLower:', tempTickLower, ' tempTickUpper: ', tempTickUpper)
-            console.log('BigInt(Math.floor(Date.now() / 1000) + 1200) = ', BigInt(Math.floor(Date.now() / 1000) + 1800))
-
-            // console.log('parseEther(String(token.lpEth)): ', parseEther(String(token.lpEth)))
-            // console.log('BigInt(parseEther(String(Number(token.totalSupply * token.lpSupply * 0.01)))): ', BigInt(parseEther(String(Number(token.totalSupply * token.lpSupply * 0.01)))))
             const addLpTxData = await routerContract.mint({
-                token0: wethAddress,
-                token1: token.address,
+                token0: _weth0 ? _weth : token.address,
+                token1: !_weth0 ? _weth : token.address,
                 fee: BigInt(token.feeTier),
-                tickLower: BigInt(tempTickLower),
-                tickUpper: BigInt(tempTickUpper),
-                amount0Desired: BigInt(parseEther(String(token.lpEth))),
-                amount1Desired: BigInt(parseEther(String(Number(token.totalSupply * token.lpSupply * 0.01)))),
+                tickLower: _weth0 ? tickUpper : tickLower,
+                tickUpper: !_weth0 ? tickUpper : tickLower,
+                amount0Desired: _weth? 0 : parseEther(String(token_init_amount)),
+                amount1Desired: !_weth? 0 : parseEther(String(token_init_amount)),
                 amount0Min: 0,
                 amount1Min: 0,
                 recipient: wallet.address,
@@ -439,7 +419,7 @@ export const burnLiquidity = async (ctx: any, id: string) => {
         } catch (err) {
             catchContractErrorException(ctx, err, CHAIN, token.address, `burn_liquidity_${id}`, 'Error while Burning Liquidity')
         }
-    } else{
+    } else {
         const positionContract = new Contract(CHAIN.POSITION_MANAGER_ADDRESS, PositionManagerABI, wallet)
         const count = await positionContract.balanceOf(token.deployer.address)
         await ctx.reply(`⏰ Your LP share checking...`, { parse_mode: 'HTML' })
@@ -451,12 +431,12 @@ export const burnLiquidity = async (ctx: any, id: string) => {
             return
         }
         const lastTokenId = await positionContract.tokenOfOwnerByIndex(token.deployer.address, BigInt(Number(count) - 1))
-        console.log("lastTokenId: ", lastTokenId)
+        console.log('lastTokenId: ', lastTokenId)
         await ctx.reply(`⏰ Burning your lp...`, { parse_mode: 'HTML' })
         const approveTx = await positionContract.approve(CHAIN.POSITION_MANAGER_ADDRESS, lastTokenId)
-        console.log("approving...")
+        console.log('approving...')
         await approveTx.wait()
-        console.log("approved ....")
+        console.log('approved ....')
         const tx = await positionContract.transferFrom(token.deployer.address, '0x000000000000000000000000000000000000dEaD', lastTokenId)
         await tx.wait()
         replyWithUpdatedMessage(ctx, `🌺 Successfuly burned your LP for <code>${token.symbol}</code>. Please check following details`, {

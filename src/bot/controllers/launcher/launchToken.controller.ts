@@ -190,7 +190,7 @@ export const previewLaunch = async (ctx: any, id: string) => {
             `<i>*Max Wallet:</i>  <code>${launch.maxWallet}%</code>\n` +
             `<i>*Max Swap:</i>  <code>${launch.maxSwap}%</code>\n`
         text += launch.uniswapV3
-            ? `<i>*Fee Tier:</i> <code>1 %</code>\n <i>*Lower Price:</i> <code>${launch.lowerPrice} %</code>\n <i>*Higher Price:</i> <code>${launch.higherPrice} %</code>\n`
+            ? `<i>*Fee Tier:</i> <code>1 %</code>\n <i>*Initial MarketCap:</i> <code>${launch.initMC} ETH</code>\n <i>*Upper MarketCap:</i> <code>${launch.upperMC} ETH</code>\n`
             : `` + `\n<b><i>*Summary*</i></b>\n` + `<code>${summary}</code>\n`
         const settings = {
             parse_mode: 'HTML',
@@ -234,7 +234,7 @@ const launchWithInstant = async (
     if (launch.uniswapV2) {
         try {
             // ----------------------------------------------------------------- variables for contract launch --------------------------------------------------------------------------------
-            const { lpEth, totalSupply, lpSupply, maxBuy, minBuy, bundledWallets, instantLaunch } = launch
+            const { lpEth, totalSupply, lpSupply, maxBuy, minBuy, bundledWallets, instantLaunch, initMC } = launch
 
             const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
             const _privteKey = decrypt(launch.deployer.key)
@@ -307,7 +307,9 @@ const launchWithInstant = async (
                 deadline,
                 feeData,
                 launch.uniswapV2,
-                launch.feeTier
+                launch.feeTier,
+                initMC,
+                lpSupply
             )
             // setup tx array
             // const bundleTxs = [deploymentTxData, approveTxData, addLpTxData, bribeTxData]
@@ -324,7 +326,7 @@ const launchWithInstant = async (
     } else if (launch.uniswapV3) {
         try {
             // ----------------------------------------------------------------- variables for contract launch --------------------------------------------------------------------------------
-            const { lpEth, totalSupply, lpSupply, maxBuy, minBuy, bundledWallets, instantLaunch, feeTier, lowerPrice, higherPrice } = launch
+            const { lpEth, totalSupply, lpSupply, maxBuy, minBuy, bundledWallets, instantLaunch, feeTier, initMC, upperMC } = launch
 
             const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
             const _privteKey = decrypt(launch.deployer.key)
@@ -353,8 +355,8 @@ const launchWithInstant = async (
             // ----------------------------------------------------------------- transactions for bundle ------------------------------------------------------------------------------------------
             let bundleTxs = []
             const deploymentTxData = await makeDeploymentTransaction(chainId, abi, bytecode, nonce, feeData, wallet)
-            const approveTxData = await makeApproveTransactionV3(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet, lpEth, routerAddress, lpSupply, feeTier)
-            const addLpTxData = await makeAddLpTransactionV3(chainId, contractAddress, tokenAmount, lpEth, deadline, nonce + 5, feeData, wallet, lpSupply, lowerPrice, higherPrice, routerAddress, feeTier)
+            const approveTxData = await makeApproveTransactionV3(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet, routerAddress, lpSupply, feeTier, initMC)
+            const addLpTxData = await makeAddLpTransactionV3(chainId, contractAddress, tokenAmount, deadline, nonce + 3, feeData, wallet, lpSupply, initMC, upperMC, routerAddress, feeTier)
             bundleTxs.push(deploymentTxData)
             approveTxData.map((tx: any) => bundleTxs.push(tx))
             bundleTxs.push(addLpTxData)
@@ -388,7 +390,9 @@ const launchWithInstant = async (
                 deadline,
                 feeData,
                 launch.uniswapV2,
-                launch.feeTier
+                launch.feeTier,
+                initMC,
+                lpSupply
             )
             // setup tx array
             // const bundleTxs = [deploymentTxData, approveTxData, addLpTxData, bribeTxData]
@@ -523,7 +527,7 @@ const launchWithAutoLP = async (
     } else if (launch.uniswapV3) {
         try {
             // ----------------------------------------------------------------- variables for contract launch --------------------------------------------------------------------------------
-            const { lpEth, totalSupply, lpSupply, maxBuy, minBuy, bundledWallets, instantLaunch, feeTier, lowerPrice, higherPrice } = launch
+            const { lpEth, totalSupply, lpSupply, maxBuy, minBuy, bundledWallets, instantLaunch, feeTier, initMC, upperMC } = launch
 
             const _jsonRpcProvider = new JsonRpcProvider(CHAIN.RPC)
             const _privteKey = decrypt(launch.deployer.key)
@@ -552,8 +556,8 @@ const launchWithAutoLP = async (
             // ----------------------------------------------------------------- transactions for bundle ------------------------------------------------------------------------------------------
             let bundleTxs = []
             const deploymentTxData = await makeDeploymentTransaction(chainId, abi, bytecode, nonce, feeData, wallet)
-            const approveTxData = await makeApproveTransactionV3(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet, lpEth, routerAddress, lpSupply, feeTier)
-            const addLpTxData = await makeAddLpTransactionV3(chainId, contractAddress, tokenAmount, lpEth, deadline, nonce + 5, feeData, wallet, lpSupply, lowerPrice, higherPrice, routerAddress, feeTier)
+            const approveTxData = await makeApproveTransactionV3(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet, routerAddress, lpSupply, feeTier, initMC)
+            const addLpTxData = await makeAddLpTransactionV3(chainId, contractAddress, tokenAmount, deadline, nonce + 3, feeData, wallet, lpSupply, initMC, upperMC, routerAddress, feeTier)
             bundleTxs.push(deploymentTxData)
             approveTxData.map((tx: any) => bundleTxs.push(tx))
             bundleTxs.push(addLpTxData)
@@ -628,6 +632,9 @@ export const tokenLaunch = async (ctx: any, id: string) => {
         if (launch.instantLaunch) {
             const provider = new JsonRpcProvider(CHAINS[CHAIN_ID].RPC)
             let requiredEthPerWallet = launch.maxBuy * launch.lpEth * 0.01
+            if(launch.uniswapV3){
+                requiredEthPerWallet = launch.maxBuy * launch.initMC / launch.lpSupply
+            }
             const _privateKey = decrypt(launch.bundledWallets[0]?.key)
             const wallet = new Wallet(_privateKey, provider)
             const nonce = await wallet.getNonce()
@@ -639,7 +646,7 @@ export const tokenLaunch = async (ctx: any, id: string) => {
             const _routerContract = new Contract(CHAIN.UNISWAP_ROUTER_ADDRESS, RouterABI, wallet)
             const path = [await _routerContract.WETH(), contractAddress]
             const deadline = Math.floor(Date.now() / 1000) + 60 * 20
-            const transactionGas = await getBundledWalletTransactionFee(CHAIN_ID, _routerContract, launch.bundledWallets[0]?.key, launch.minBuy, launch.maxBuy, launch.totalSupply, launch.lpEth, path, deadline)
+            const transactionGas = await getBundledWalletTransactionFee(CHAIN_ID, _routerContract, launch.bundledWallets[0]?.key, launch.minBuy, launch.maxBuy, launch.totalSupply, launch.lpEth, path, deadline, launch.uniswapV3, launch.initMC, launch.lpSupply, launch.feeTier)
             const feeData = await provider.getFeeData()
             const estimateFee = transactionGas * feeData.maxFeePerGas
             console.log('estimateFee: ', estimateFee)
@@ -776,8 +783,8 @@ export const tokenLaunch = async (ctx: any, id: string) => {
                 uniswapV2: launch.uniswapV2,
                 uniswapV3: launch.uniswapV3,
                 feeTier: launch.feeTier,
-                lowerPrice: launch.lowerPrice,
-                higherPrice: launch.higherPrice,
+                initMC: launch.initMC,
+                upperMC: launch.upperMC,
                 // contract data
                 address: address,
                 verified: false,
@@ -819,8 +826,8 @@ export const tokenLaunch = async (ctx: any, id: string) => {
                 uniswapV2: launch.uniswapV2,
                 uniswapV3: launch.uniswapV3,
                 feeTier: launch.feeTier,
-                lowerPrice: launch.lowerPrice,
-                higherPrice: launch.higherPrice,
+                initMC: launch.initMC,
+                upperMC: launch.upperMC,
                 // contract data
                 address: address,
                 verified: false,

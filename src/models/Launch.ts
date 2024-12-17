@@ -23,8 +23,8 @@ export interface ILanuch extends Document {
     liquidityFee: number
     swapThreshold: number
     feeTier: number
-    lowerPrice: number
-    higherPrice: number
+    initMC: number
+    upperMC: number
 
     website: string
     twitter: string
@@ -104,7 +104,7 @@ const LaunchSchema: Schema = new Schema({
     },
     lpEth: {
         type: Number,
-        default: 1
+        default: 0
     },
     contractFunds: {
         type: Number,
@@ -136,13 +136,13 @@ const LaunchSchema: Schema = new Schema({
         type: Number,
         default: 10000 //V3 Fee Tier
     },
-    lowerPrice: {
+    initMC: {
         type: Number,
-        default: 50 //percent of Current Price
+        default: 1 //Initial MarketCap
     },
-    higherPrice: {
+    upperMC: {
         type: Number,
-        default: 300 //percent of Current Price
+        default: 100000 //Upper MarketCap
     },
 
     /////// social settings

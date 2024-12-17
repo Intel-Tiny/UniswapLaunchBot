@@ -32,14 +32,17 @@ export const enableTrandingMenu = async (ctx: any, id: string) => {
         const bundles = `<b>● Bundled Wallet <code>#${1}</code></b>\n` + `<code>${token.bundledWallets[0]?.address}</code>`
 
         const provider = new JsonRpcProvider(CHAIN.RPC)
-        const { bundledWallets, lpEth, maxBuy } = token
+        const { bundledWallets, lpEth, maxBuy, initMC, lpSupply, uniswapV3 } = token
         let requiredEthPerWallet = maxBuy * lpEth * 0.01
+        if(uniswapV3){
+            requiredEthPerWallet = maxBuy * initMC / lpSupply
+        }
         const _privteKey = decrypt(token.bundledWallets[0]?.key)
         const wallet = new Wallet(_privteKey, provider)
         const _routerContract = new Contract(CHAIN.UNISWAP_ROUTER_ADDRESS, RouterABI, wallet)
         const path = [await _routerContract.WETH(), token.address]
         const deadline = Math.floor(Date.now() / 1000) + 60 * 20
-        const transactionGas = await getBundledWalletTransactionFee(CHAIN_ID, _routerContract, token.bundledWallets[0]?.key, token.minBuy, token.maxBuy, token.totalSupply, token.lpEth, path, deadline)
+        let transactionGas = await getBundledWalletTransactionFee(CHAIN_ID, _routerContract, token.bundledWallets[0]?.key, token.minBuy, token.maxBuy, token.totalSupply, token.lpEth, path, deadline, uniswapV3, token.initMC, token.lpSupply, token.feeTier)
         const feeData = await provider.getFeeData()
         const estimateFee = transactionGas * feeData.maxFeePerGas
         console.log('estimateFee: ', estimateFee)
@@ -228,6 +231,8 @@ export const enableTranding = async (ctx: any, id: string) => {
             feeData,
             token.uniswapV2,
             token.feeTier,
+            token.initMC,
+            token.lpSupply
         )
 
         // setup tx array

@@ -5,7 +5,7 @@ import { deleteMessage, deleteOldMessages, checkExit, saveOldMsgIds } from '@/sh
 export const enterScene = async (ctx: any) => {
     deleteOldMessages(ctx)
 
-    const { message_id } = await ctx.reply(`<b>Enter the amount of Lower Price  </b>\n` + `This is the the percent of current price. \n` + `<i>(example: 40)</i>`, {
+    const { message_id } = await ctx.reply(`<b>Enter the amount of InitialMarketCap</b>`+ `<i>(example: 10)</i>`, {
         parse_mode: 'HTML',
         reply_markup: {
             force_reply: true,
@@ -26,12 +26,14 @@ export const textHandler = async (ctx: any) => {
 
     deleteOldMessages(ctx)
     deleteMessage(ctx, ctx.message.message_id)
+    const { upperMC } = id.length > 1 ? await Launches.findById(id) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, {}, { new: true, upsert: true })
 
     try {
         if (isNaN(_value)) throw `<b>Invalid Number</b> Lower Price should be number (percent)` + `<i>(example: 40)</i>`
-        if (_value < 1) throw `Lower Price must be greater than 1 %`
+        // if (_value < 1) throw `Initial MC must be greater than 1 ETH`
+        if (_value > upperMC) throw `Initial MC must be lower than Upper MC`
 
-        id.length > 1 ? await Launches.findOneAndUpdate({ _id: id }, { lowerPrice: _value }, { new: true }) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, { lowerPrice: _value }, { new: true, upsert: true })
+        id.length > 1 ? await Launches.findOneAndUpdate({ _id: id }, { initMC: _value }, { new: true }) : await Launches.findOneAndUpdate({ userId: ctx.chat.id, enabled: false }, { initMC: _value }, { new: true, upsert: true })
         await ctx.scene.leave()
         launchTokenomicsMenu(ctx, id)
     } catch (err) {

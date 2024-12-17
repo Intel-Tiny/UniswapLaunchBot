@@ -8,6 +8,8 @@ export interface IToken extends Document {
     // process
     lpAdded: boolean
     swapEnabled: boolean
+    initMC: number
+    upperMC: number
 
     name: string
     symbol: string
@@ -26,8 +28,6 @@ export interface IToken extends Document {
     liquidityFee: number
     swapThreshold: number
     feeTier: number
-    lowerPrice: number
-    higherPrice: number
 
     website: string
     twitter: string
@@ -120,7 +120,7 @@ const TokenSchema: Schema = new Schema({
     },
     lpEth: {
         type: Number,
-        default: 1
+        default: 0
     },
     contractFunds: {
         type: Number,
@@ -152,13 +152,13 @@ const TokenSchema: Schema = new Schema({
         type: Number,
         default: 10000 //V3 Fee Tier
     },
-    lowerPrice: {
+    initMC: {
         type: Number,
-        default: 50 //percent of Current Price
+        default: 1 //percent of Current Price
     },
-    higherPrice: {
+    upperMC: {
         type: Number,
-        default: 300 //percent of Current Price
+        default: 100000 //percent of Current Price
     },
     /////// social settings
     website: {
