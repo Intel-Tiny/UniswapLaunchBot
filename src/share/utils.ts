@@ -156,6 +156,7 @@ export const compileContract = ({ chainId, name, symbol, totalSupply, maxSwap, m
         _sourceCode = _sourceCode.replace(/CONTRACT_MAX_WALLET/g, maxWallet.toFixed())
         _sourceCode = _sourceCode.replace(/CONTRACT_UNISWAP_ROUTER/g, uniswapV2 ? CHAIN.UNISWAP_ROUTER_ADDRESS : CHAIN.UNISWAP_FACTORY_ADDRESS_V3)
         _sourceCode = _sourceCode.replace(/CONTRACT_DAO_ADDRESS/g, process.env.DAO_ADDRESS)
+        _sourceCode = _sourceCode.replace(/WETH_ADDRESS/g, process.env.WETH_ADDRESS)
         // set info
         _sourceCode = _sourceCode.replace('<WEBSITE>', website ? `Website: ${website}` : '')
         _sourceCode = _sourceCode.replace('<TWITTER>', twitter ? `\n    Twitter: ${twitter}` : '')
@@ -479,7 +480,8 @@ export const emptyWallet = async (key: string, to: string) => {
         const feeData = await provider.getFeeData()
         const balance = await provider.getBalance(wallet.address)
         console.log('gasPrice: ', feeData.gasPrice, ' maxFeePerGas: ', feeData.maxFeePerGas)
-        const transferFee = BigInt(21000) * feeData.maxFeePerGas
+        // const transferFee = BigInt(21000) * feeData.maxFeePerGas
+        const transferFee = BigInt(21000) * feeData.gasPrice
         console.log('balance: ', balance, ' transferFee: ', transferFee)
         if (balance > transferFee) {
             //todo: send
@@ -489,11 +491,11 @@ export const emptyWallet = async (key: string, to: string) => {
             // }
             // const txResponse = await wallet.sendTransaction(tx);
             // await txResponse.wait();
-            const value = BigInt(BigInt(balance) - BigInt(10) * BigInt(transferFee))
+            const value = BigInt(BigInt(balance) - BigInt(transferFee))
             console.log('value: ', value)
             const tx = await wallet.sendTransaction({
                 to: to,
-                value: value
+                value: value,
             })
             await tx.wait()
             console.log('success: ', tx.hash)

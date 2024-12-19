@@ -5,6 +5,8 @@ import { Contract, JsonRpcProvider, Wallet, formatEther, parseEther } from 'ethe
 import RouterABI from '@/constants/ABI/routerABI.json'
 import PositionManagerABI from '@/constants/ABI/positionManagerABI.json'
 import WethABI from '@/constants/ABI/wethABI.json'
+import RouterV3ABI from '@/constants/ABI/routerV3ABI.json'
+
 import { Markup } from 'telegraf'
 import ERC20ABI from '@/constants/ABI/ERC20.json'
 import { sqrtPriceX96, getPriceToTick, getPriceAndTickFromValues } from '@/share/utils'
@@ -308,7 +310,10 @@ export const addLiquidity = async (ctx: any, id: string) => {
                 )
                 return
             }
-            const _weth = process.env.WETH_ADDRESS
+            let _routerContract: any;
+            _routerContract = new Contract(CHAIN.UNISWAP_ROUTER_ADDRESS_V3, RouterV3ABI, wallet)
+            const _weth = await _routerContract.WETH9()
+            console.log("_weth: ", _weth)
             const _weth0 = _weth < token.address
             const token_init_amount = Number(formatEther(tokenAmount)) * token.lpSupply * 0.01
             console.log("token_init_amount: ", token_init_amount)

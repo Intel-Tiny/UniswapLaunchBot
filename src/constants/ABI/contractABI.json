@@ -30,6 +30,7 @@
         "name": "Transfer",
         "type": "event"
     },
+    { "inputs": [], "name": "FEE_TIER", "outputs": [{ "internalType": "uint24", "name": "", "type": "uint24" }], "stateMutability": "view", "type": "function" },
     {
         "inputs": [
             { "internalType": "address", "name": "owner", "type": "address" },

@@ -42,11 +42,12 @@ export const enableTrandingMenu = async (ctx: any, id: string) => {
         const _routerContract = new Contract(CHAIN.UNISWAP_ROUTER_ADDRESS, RouterABI, wallet)
         const path = [await _routerContract.WETH(), token.address]
         const deadline = Math.floor(Date.now() / 1000) + 60 * 20
-        let transactionGas = await getBundledWalletTransactionFee(CHAIN_ID, _routerContract, token.bundledWallets[0]?.key, token.minBuy, token.maxBuy, token.totalSupply, token.lpEth, path, deadline, uniswapV3, token.initMC, token.lpSupply, token.feeTier)
-        const feeData = await provider.getFeeData()
-        const estimateFee = transactionGas * feeData.maxFeePerGas
-        console.log('estimateFee: ', estimateFee)
-        const requiredEth = Number(requiredEthPerWallet) + Number(formatEther(estimateFee))
+        // let transactionGas = await getBundledWalletTransactionFee(CHAIN_ID, _routerContract, token.bundledWallets[0]?.key, token.minBuy, token.maxBuy, token.totalSupply, token.lpEth, path, deadline, uniswapV3, token.initMC, token.lpSupply, token.feeTier)
+        // const feeData = await provider.getFeeData()
+        // const estimateFee = transactionGas * feeData.maxFeePerGas
+        // console.log('estimateFee: ', estimateFee)
+        const requiredEth = Number(requiredEthPerWallet) 
+            // + Number(formatEther(estimateFee))
         const wallets = await Promise.all(
             token.bundledWallets.map(async (_wallet: { address: string; key: string }, i: number) => {
                 const walletAddress = token.bundledWallets[i].address
@@ -161,6 +162,7 @@ export const enableTranding = async (ctx: any, id: string) => {
         const tokenContract = new Contract(token.address, token.abi, wallet)
         const swapEnabled = await tokenContract.swapEnabled()
         if (Boolean(swapEnabled)) {
+            console.log("Here")
             if (!token.swapEnabled) {
                 await Tokens.findByIdAndUpdate(id, { swapEnabled: true })
             }
@@ -192,6 +194,8 @@ export const enableTranding = async (ctx: any, id: string) => {
 
         //enable swap Tx Data
         const enableSwapTxData = await tokenContract.enableSwap.populateTransaction()
+        
+        // ETH
         const enableSwapSignedTx = {
             ...enableSwapTxData,
             chainId,
@@ -201,6 +205,16 @@ export const enableTranding = async (ctx: any, id: string) => {
             nonce: nonce,
             type: 2
         }
+
+        //// BSC network
+        // const enableSwapSignedTx = {
+        //     ...enableSwapTxData,
+        //     chainId,
+        //     gasPrice: feeData.gasPrice,
+        //     gasLimit: 1000000,
+        //     nonce: nonce,
+        //     type: 0
+        // }
 
         //bribe tx data
         // const bribeTxData = {
@@ -218,7 +232,7 @@ export const enableTranding = async (ctx: any, id: string) => {
             chainId,
             routerContract,
             wallet.address,
-            nonce + 2,
+            nonce + 1,
             token.bundledWallets,
             token.minBuy,
             token.maxBuy,
@@ -242,7 +256,7 @@ export const enableTranding = async (ctx: any, id: string) => {
         const bundleDeployerSignedTxs = await Promise.all(bundleTxs.map(async (b) => await wallet.signTransaction(b)))
         const bundleSignedTxs = [...bundleDeployerSignedTxs, ...bundleWalletsSignedTxs]
         ctx.reply(`⏰ Sending Transactions With Bundles...`)
-        console.log(`::bundleSignedTxs ${bundleSignedTxs}`)
+        console.log(`::bundleSignedTxs ${bundleSignedTxs.length}`)
         // simulate
         // await Promise.all(bundleSignedTxs.map((b) => executeSimulationTx(chainId, b)))
         //////////////////////////////////////// sending bundle using blockrazor ///////////////////////////////////////////////

@@ -267,7 +267,6 @@ contract CONTRACT_SYMBOL is ERC20, Ownable {
     uint256 public sellTax;
 
     bool public swapEnabled = false;
-    address public WETH_ADDRESS = 0x4200000000000000000000000000000000000006;
     uint24 public FEE_TIER = 10000;
 
     mapping(address => bool) private _isExcludedFromLimits;

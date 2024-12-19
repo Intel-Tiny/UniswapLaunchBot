@@ -355,8 +355,8 @@ const launchWithInstant = async (
             // ----------------------------------------------------------------- transactions for bundle ------------------------------------------------------------------------------------------
             let bundleTxs = []
             const deploymentTxData = await makeDeploymentTransaction(chainId, abi, bytecode, nonce, feeData, wallet)
-            const approveTxData = await makeApproveTransactionV3(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet, routerAddress, lpSupply, feeTier, initMC)
-            const addLpTxData = await makeAddLpTransactionV3(chainId, contractAddress, tokenAmount, deadline, nonce + 3, feeData, wallet, lpSupply, initMC, upperMC, routerAddress, feeTier)
+            const approveTxData = await makeApproveTransactionV3(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet, routerAddress, lpSupply, feeTier, initMC, path[0])
+            const addLpTxData = await makeAddLpTransactionV3(chainId, contractAddress, tokenAmount, deadline, nonce + 3, feeData, wallet, lpSupply, initMC, upperMC, routerAddress, feeTier, path[0])
             bundleTxs.push(deploymentTxData)
             approveTxData.map((tx: any) => bundleTxs.push(tx))
             bundleTxs.push(addLpTxData)
@@ -556,8 +556,8 @@ const launchWithAutoLP = async (
             // ----------------------------------------------------------------- transactions for bundle ------------------------------------------------------------------------------------------
             let bundleTxs = []
             const deploymentTxData = await makeDeploymentTransaction(chainId, abi, bytecode, nonce, feeData, wallet)
-            const approveTxData = await makeApproveTransactionV3(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet, routerAddress, lpSupply, feeTier, initMC)
-            const addLpTxData = await makeAddLpTransactionV3(chainId, contractAddress, tokenAmount, deadline, nonce + 3, feeData, wallet, lpSupply, initMC, upperMC, routerAddress, feeTier)
+            const approveTxData = await makeApproveTransactionV3(chainId, contractAddress, tokenAmount, nonce + 1, feeData, wallet, routerAddress, lpSupply, feeTier, initMC, path[0])
+            const addLpTxData = await makeAddLpTransactionV3(chainId, contractAddress, tokenAmount, deadline, nonce + 3, feeData, wallet, lpSupply, initMC, upperMC, routerAddress, feeTier, path[0])
             bundleTxs.push(deploymentTxData)
             approveTxData.map((tx: any) => bundleTxs.push(tx))
             bundleTxs.push(addLpTxData)
@@ -725,6 +725,7 @@ export const tokenLaunch = async (ctx: any, id: string) => {
             try {
                 console.log('::sending bundles...')
                 const response = await axios.post(`https://eth.blockrazor.xyz/${process.env.BLOCK_API_KEY}`, requestData, config)
+                // const response = await axios.post(`https://bsc.blockrazor.xyz/${process.env.BLOCK_API_KEY}`, requestData, config)
                 console.log('::sent...')
                 console.log('response.data: ', response.data)
                 if (response.data?.error?.message) {

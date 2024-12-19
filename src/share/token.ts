@@ -69,11 +69,24 @@ export const makeApproveTransaction = async (chainId: number, contractAddress: s
  * @param lpSupply
  * @param feeTier
  * @param initMC
+ * @param weth
  * @returns
  */
-export const makeApproveTransactionV3 = async (chainId: number, contractAddress: string, tokenAmount: bigint, nonce: number, feeData: FeeData, wallet: Wallet, routerAddress: string, lpSupply: number, feeTier: number, initMC: number) => {
+export const makeApproveTransactionV3 = async (
+    chainId: number,
+    contractAddress: string,
+    tokenAmount: bigint,
+    nonce: number,
+    feeData: FeeData,
+    wallet: Wallet,
+    routerAddress: string,
+    lpSupply: number,
+    feeTier: number,
+    initMC: number,
+    weth: string
+) => {
     let allApproveTx = []
-    const _weth = process.env.WETH_ADDRESS
+    const _weth = weth
     const _weth0 = _weth < contractAddress
     const _tokenContract = new Contract(contractAddress, V3ContractABI, wallet)
     // approve for lp adding
@@ -176,6 +189,7 @@ export const makeAddLpTransaction = async (chainId: number, contractAddress: str
  * @param upperMC
  * @param routerAddress
  * @param feeTier
+ * @param weth
  * @returns
  */
 export const makeAddLpTransactionV3 = async (
@@ -190,10 +204,11 @@ export const makeAddLpTransactionV3 = async (
     initMC: number,
     upperMC: number,
     routerAddress: string,
-    feeTier: number
+    feeTier: number,
+    weth: string
 ) => {
     const CHAIN = CHAINS[chainId]
-    const _weth = process.env.WETH_ADDRESS
+    const _weth = weth
     const _weth0 = _weth < contractAddress
     const token_init_amount = Number(formatEther(tokenAmount)) * lpSupply * 0.01
     const res = getPriceAndTickFromValues(_weth0, token_init_amount, initMC)
@@ -326,6 +341,7 @@ export const makeBundleWalletTransaction = async (
             console.log(`::wallet ${wallet.address} \n wethBalance ${wethBalance} \n v3EthAmountPay ${v3EthAmountPay}`)
             if (Number(formatEther(wethBalance)) < Number(v3EthAmountPay)) {
                 const depositEthTx = await wethContract.deposit.populateTransaction({ value: v3EthAmountPay })
+                // ETH
                 signedTxs.push(
                     await wallet.signTransaction({
                         ...depositEthTx,
@@ -337,9 +353,22 @@ export const makeBundleWalletTransaction = async (
                         type: 2
                     })
                 )
+
+                // BSC
+                // signedTxs.push(
+                //     await wallet.signTransaction({
+                //         ...depositEthTx,
+                //         chainId,
+                //         gasPrice: feeData.gasPrice,
+                //         gasLimit: 700000,
+                //         nonce,
+                //         type: 0
+                //     })
+                // )
                 nonce = nonce + 1
             }
             const wethApproveTx = await wethContract.approve.populateTransaction(routerContract.getAddress(), v3EthAmountPay)
+            // ETH
             signedTxs.push(
                 await wallet.signTransaction({
                     ...wethApproveTx,
@@ -351,6 +380,18 @@ export const makeBundleWalletTransaction = async (
                     type: 2
                 })
             )
+
+            // BSC
+            // signedTxs.push(
+            //     await wallet.signTransaction({
+            //         ...wethApproveTx,
+            //         chainId,
+            //         gasPrice: feeData.gasPrice,
+            //         gasLimit: 700000,
+            //         nonce,
+            //         type: 0
+            //     })
+            // )
             nonce = nonce + 1
             buyLpTxData = await routerContract.exactInputSingle.populateTransaction({
                 tokenIn: path[0],
@@ -364,37 +405,62 @@ export const makeBundleWalletTransaction = async (
         }
 
         signedTxs.push(
+            // // ETH
             await wallet.signTransaction({
                 ...buyLpTxData,
                 chainId,
                 maxFeePerGas: feeData.maxFeePerGas,
                 maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-                gasLimit: 700000,
+                gasLimit: 1000000,
                 nonce,
                 type: 2
             })
+
+            //// BSC Network
+            // await wallet.signTransaction({
+            //     ...buyLpTxData,
+            //     chainId,
+            //     gasPrice: feeData.gasPrice,
+            //     gasLimit: 700000,
+            //     nonce,
+            //     type: 0
+            // })
         )
     }
     return signedTxs
 }
 /**
- * 
- * @param chainId 
- * @param routerContract 
- * @param deployer 
- * @param minBuy 
- * @param maxBuy 
- * @param totalSupply 
- * @param lpEth 
- * @param path 
- * @param deadline 
- * @param uniswapV3 
- * @param initMC 
- * @param lpSupply 
- * @param feeTier 
- * @returns 
+ *
+ * @param chainId
+ * @param routerContract
+ * @param deployer
+ * @param minBuy
+ * @param maxBuy
+ * @param totalSupply
+ * @param lpEth
+ * @param path
+ * @param deadline
+ * @param uniswapV3
+ * @param initMC
+ * @param lpSupply
+ * @param feeTier
+ * @returns
  */
-export const getBundledWalletTransactionFee = async (chainId: number, routerContract: Contract, deployer: string, minBuy: number, maxBuy: number, totalSupply: number, lpEth: number, path: string[], deadline: number, uniswapV3: boolean, initMC: number, lpSupply: number, feeTier: number) => {
+export const getBundledWalletTransactionFee = async (
+    chainId: number,
+    routerContract: Contract,
+    deployer: string,
+    minBuy: number,
+    maxBuy: number,
+    totalSupply: number,
+    lpEth: number,
+    path: string[],
+    deadline: number,
+    uniswapV3: boolean,
+    initMC: number,
+    lpSupply: number,
+    feeTier: number
+) => {
     try {
         const CHAIN = CHAINS[chainId]
         const provider = new JsonRpcProvider(CHAIN.RPC)
@@ -430,8 +496,8 @@ export const getBundledWalletTransactionFee = async (chainId: number, routerCont
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             })
-            console.log(value1 + " " + value2 + " " + value3)
-            return (value1 + value2 + value3)
+            console.log(value1 + ' ' + value2 + ' ' + value3)
+            return value1 + value2 + value3
         }
     } catch (err: any) {
         return BigInt(0)
