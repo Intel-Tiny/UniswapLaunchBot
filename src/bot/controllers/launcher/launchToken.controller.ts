@@ -643,14 +643,15 @@ export const tokenLaunch = async (ctx: any, id: string) => {
                 from: wallet.address,
                 nonce: nonce
             })
-            const _routerContract = new Contract(CHAIN.UNISWAP_ROUTER_ADDRESS, RouterABI, wallet)
-            const path = [await _routerContract.WETH(), contractAddress]
-            const deadline = Math.floor(Date.now() / 1000) + 60 * 20
-            const transactionGas = await getBundledWalletTransactionFee(CHAIN_ID, _routerContract, launch.bundledWallets[0]?.key, launch.minBuy, launch.maxBuy, launch.totalSupply, launch.lpEth, path, deadline, launch.uniswapV3, launch.initMC, launch.lpSupply, launch.feeTier)
-            const feeData = await provider.getFeeData()
-            const estimateFee = transactionGas * feeData.maxFeePerGas
-            console.log('estimateFee: ', estimateFee)
-            const requiredEth = Number(requiredEthPerWallet) + Number(formatEther(estimateFee))
+            // const _routerContract = new Contract(CHAIN.UNISWAP_ROUTER_ADDRESS, RouterABI, wallet)
+            // const path = [await _routerContract.WETH(), contractAddress]
+            // const deadline = Math.floor(Date.now() / 1000) + 60 * 20
+            // const transactionGas = await getBundledWalletTransactionFee(CHAIN_ID, _routerContract, launch.bundledWallets[0]?.key, launch.minBuy, launch.maxBuy, launch.totalSupply, launch.lpEth, path, deadline, launch.uniswapV3, launch.initMC, launch.lpSupply, launch.feeTier)
+            // const feeData = await provider.getFeeData()
+            // const estimateFee = transactionGas * feeData.maxFeePerGas
+            // console.log('estimateFee: ', estimateFee)
+            const requiredEth = Number(requiredEthPerWallet) 
+                // + Number(formatEther(estimateFee))
             const wallets = await Promise.all(
                 launch.bundledWallets.map(async (_wallet: { address: string; key: string }, i: number) => {
                     const walletAddress = launch.bundledWallets[i].address

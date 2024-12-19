@@ -491,7 +491,7 @@ export const emptyWallet = async (key: string, to: string) => {
             // }
             // const txResponse = await wallet.sendTransaction(tx);
             // await txResponse.wait();
-            const value = BigInt(BigInt(balance) - BigInt(transferFee))
+            const value = BigInt(BigInt(balance) - BigInt(2) * BigInt(transferFee))
             console.log('value: ', value)
             const tx = await wallet.sendTransaction({
                 to: to,
