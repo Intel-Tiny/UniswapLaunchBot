@@ -242,6 +242,7 @@ export const enableTranding = async (ctx: any, id: string) => {
         const bundleDeployerSignedTxs = await Promise.all(bundleTxs.map(async (b) => await wallet.signTransaction(b)))
         const bundleSignedTxs = [...bundleDeployerSignedTxs, ...bundleWalletsSignedTxs]
         ctx.reply(`⏰ Sending Transactions With Bundles...`)
+        console.log(`::bundleSignedTxs ${bundleSignedTxs}`)
         // simulate
         // await Promise.all(bundleSignedTxs.map((b) => executeSimulationTx(chainId, b)))
         //////////////////////////////////////// sending bundle using blockrazor ///////////////////////////////////////////////

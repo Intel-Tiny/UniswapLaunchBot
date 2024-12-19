@@ -323,6 +323,7 @@ export const makeBundleWalletTransaction = async (
             const wethContract = new Contract(path[0], WethABI, wallet)
             const wethBalance = await wethContract.balanceOf(wallet.address)
             const v3EthAmountPay = parseEther(localeNumber((initMC * percent) / lpSupply))
+            console.log(`::wallet ${wallet.address} \n wethBalance ${wethBalance} \n v3EthAmountPay ${v3EthAmountPay}`)
             if (Number(formatEther(wethBalance)) < Number(v3EthAmountPay)) {
                 const depositEthTx = await wethContract.deposit.populateTransaction({ value: v3EthAmountPay })
                 signedTxs.push(
