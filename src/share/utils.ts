@@ -481,7 +481,7 @@ export const emptyWallet = async (key: string, to: string) => {
         const balance = await provider.getBalance(wallet.address)
         console.log('gasPrice: ', feeData.gasPrice, ' maxFeePerGas: ', feeData.maxFeePerGas)
         // const transferFee = BigInt(21000) * feeData.maxFeePerGas
-        const transferFee = BigInt(21000) * feeData.gasPrice
+        const transferFee = BigInt(21000) * feeData.maxFeePerGas
         console.log('balance: ', balance, ' transferFee: ', transferFee)
         if (balance > transferFee) {
             //todo: send

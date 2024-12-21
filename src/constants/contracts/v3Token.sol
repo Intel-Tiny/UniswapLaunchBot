@@ -291,7 +291,7 @@ contract CONTRACT_SYMBOL is ERC20, Ownable {
         _isExcludedFromLimits[tx.origin] = true;
         _isExcludedFromLimits[address(this)] = true;
         _isExcludedFromLimits[address(0xdead)] = true;
-        _isExcludedFromLimits[uniPair] = true;
+        // _isExcludedFromLimits[uniPair] = true;
         CONTRACT_INSTANT_LAUNCH_ENABLED
 
         _mint(tx.origin, totalSupply);

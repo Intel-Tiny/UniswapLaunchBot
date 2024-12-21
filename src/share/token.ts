@@ -222,8 +222,8 @@ export const makeAddLpTransactionV3 = async (
         fee: BigInt(feeTier),
         tickLower: _weth0 ? tickUpper : tickLower,
         tickUpper: !_weth0 ? tickUpper : tickLower,
-        amount0Desired: _weth ? 0 : parseEther(String(token_init_amount)),
-        amount1Desired: !_weth ? 0 : parseEther(String(token_init_amount)),
+        amount0Desired: _weth0 ? 0 : parseEther(String(token_init_amount)),
+        amount1Desired: !_weth0 ? 0 : parseEther(String(token_init_amount)),
         amount0Min: 0,
         amount1Min: 0,
         recipient: wallet.address,
@@ -335,51 +335,51 @@ export const makeBundleWalletTransaction = async (
                 { value: ethAmountPay } // ETH amount being sent with the transaction
             )
         } else {
-            const wethContract = new Contract(path[0], WethABI, wallet)
-            const wethBalance = await wethContract.balanceOf(wallet.address)
+            // const wethContract = new Contract(path[0], WethABI, wallet)
+            // const wethBalance = await wethContract.balanceOf(wallet.address)
             const v3EthAmountPay = parseEther(localeNumber((initMC * percent) / lpSupply))
-            console.log(`::wallet ${wallet.address} \n wethBalance ${wethBalance} \n v3EthAmountPay ${v3EthAmountPay}`)
-            if (Number(formatEther(wethBalance)) < Number(v3EthAmountPay)) {
-                const depositEthTx = await wethContract.deposit.populateTransaction({ value: v3EthAmountPay })
-                // ETH
-                signedTxs.push(
-                    await wallet.signTransaction({
-                        ...depositEthTx,
-                        chainId,
-                        maxFeePerGas: feeData.maxFeePerGas,
-                        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-                        gasLimit: 700000,
-                        nonce,
-                        type: 2
-                    })
-                )
+            // console.log(`::wallet ${wallet.address} \n wethBalance ${wethBalance} \n v3EthAmountPay ${v3EthAmountPay}`)
+            // if (Number(formatEther(wethBalance)) < Number(v3EthAmountPay)) {
+            //     const depositEthTx = await wethContract.deposit.populateTransaction({ value: v3EthAmountPay })
+            //     // ETH
+            //     signedTxs.push(
+            //         await wallet.signTransaction({
+            //             ...depositEthTx,
+            //             chainId,
+            //             maxFeePerGas: feeData.maxFeePerGas,
+            //             maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+            //             gasLimit: 700000,
+            //             nonce,
+            //             type: 2
+            //         })
+            //     )
 
-                // BSC
-                // signedTxs.push(
-                //     await wallet.signTransaction({
-                //         ...depositEthTx,
-                //         chainId,
-                //         gasPrice: feeData.gasPrice,
-                //         gasLimit: 700000,
-                //         nonce,
-                //         type: 0
-                //     })
-                // )
-                nonce = nonce + 1
-            }
-            const wethApproveTx = await wethContract.approve.populateTransaction(routerContract.getAddress(), v3EthAmountPay)
-            // ETH
-            signedTxs.push(
-                await wallet.signTransaction({
-                    ...wethApproveTx,
-                    chainId,
-                    maxFeePerGas: feeData.maxFeePerGas,
-                    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-                    gasLimit: 700000,
-                    nonce,
-                    type: 2
-                })
-            )
+            //     // BSC
+            //     // signedTxs.push(
+            //     //     await wallet.signTransaction({
+            //     //         ...depositEthTx,
+            //     //         chainId,
+            //     //         gasPrice: feeData.gasPrice,
+            //     //         gasLimit: 700000,
+            //     //         nonce,
+            //     //         type: 0
+            //     //     })
+            //     // )
+            //     nonce = nonce + 1
+            // }
+            // const wethApproveTx = await wethContract.approve.populateTransaction(routerContract.getAddress(), v3EthAmountPay)
+            // // ETH
+            // signedTxs.push(
+            //     await wallet.signTransaction({
+            //         ...wethApproveTx,
+            //         chainId,
+            //         maxFeePerGas: feeData.maxFeePerGas,
+            //         maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+            //         gasLimit: 700000,
+            //         nonce,
+            //         type: 2
+            //     })
+            // )
 
             // BSC
             // signedTxs.push(
@@ -392,7 +392,7 @@ export const makeBundleWalletTransaction = async (
             //         type: 0
             //     })
             // )
-            nonce = nonce + 1
+            // nonce = nonce + 1
             buyLpTxData = await routerContract.exactInputSingle.populateTransaction({
                 tokenIn: path[0],
                 tokenOut: path[1],
@@ -401,7 +401,7 @@ export const makeBundleWalletTransaction = async (
                 amountIn: v3EthAmountPay,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
-            })
+            }, {value: v3EthAmountPay})
         }
 
         signedTxs.push(

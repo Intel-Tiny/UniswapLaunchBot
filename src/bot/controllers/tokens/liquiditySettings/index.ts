@@ -338,15 +338,14 @@ export const addLiquidity = async (ctx: any, id: string) => {
             console.log('::initialized pool:', initializePoolTxData.hash)
             // app LP
             await ctx.reply(`⏰ Adding Liquidity for <code>${token.symbol}</code>...`, { parse_mode: 'HTML' })
-            console.log('tickLower: ', tickLower, ' tickUpper: ', tickUpper)
             const addLpTxData = await routerContract.mint({
                 token0: _weth0 ? _weth : token.address,
                 token1: !_weth0 ? _weth : token.address,
                 fee: BigInt(token.feeTier),
                 tickLower: _weth0 ? tickUpper : tickLower,
                 tickUpper: !_weth0 ? tickUpper : tickLower,
-                amount0Desired: _weth? 0 : parseEther(String(token_init_amount)),
-                amount1Desired: !_weth? 0 : parseEther(String(token_init_amount)),
+                amount0Desired: _weth0? 0 : parseEther(String(token_init_amount)),
+                amount1Desired: !_weth0? 0 : parseEther(String(token_init_amount)),
                 amount0Min: 0,
                 amount1Min: 0,
                 recipient: wallet.address,
